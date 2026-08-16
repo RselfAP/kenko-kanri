@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>健康管理</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/prop-types@15/prop-types.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/recharts@2/umd/Recharts.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/plain" id="app-source">
+const { useState, useEffect, useRef } = React;
+const {
+  ScatterChart, Scatter, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer,
+} = Recharts;
+
+function Icon({ children, size = 24, color = "currentColor", strokeWidth = 2, className }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+      strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      {children}
+    </svg>
+  );
+}
+const LayoutGrid = (props) => (
+  <Icon {...props}>
+    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+  </Icon>
+);
+const Scale = (props) => (
+  <Icon {...props}>
+    <line x1="12" y1="4" x2="12" y2="20" />
+    <line x1="5" y1="8" x2="19" y2="8" />
+    <circle cx="5" cy="13" r="3" />
+    <circle cx="19" cy="13" r="3" />
+    <line x1="8" y1="21" x2="16" y2="21" />
+  </Icon>
+);
+const Utensils = (props) => (
+  <Icon {...props}>
+    <line x1="4" y1="2" x2="4" y2="9" />
+    <line x1="10" y1="2" x2="10" y2="9" />
+    <path d="M4 9 Q4 11 7 11 Q10 11 10 9" />
+    <line x1="7" y1="11" x2="7" y2="22" />
+    <path d="M17 2 C15 2 15 6 15 8 C15 10 16 11 17 11 L17 22" />
+  </Icon>
+);
+const Dumbbell = (props) => (
+  <Icon {...props}>
+    <rect x="2" y="9" width="4" height="6" rx="1" />
+    <rect x="18" y="9" width="4" height="6" rx="1" />
+    <rect x="5" y="7" width="2" height="10" rx="1" />
+    <rect x="17" y="7" width="2" height="10" rx="1" />
+    <line x1="7" y1="12" x2="17" y2="12" />
+  </Icon>
+);
+const Footprints = (props) => (
+  <Icon {...props}>
+    <ellipse cx="8" cy="16" rx="3" ry="4.5" />
+    <ellipse cx="16" cy="8" rx="3" ry="4.5" />
+    <circle cx="8" cy="10" r="1" />
+    <circle cx="16" cy="14" r="1" />
+  </Icon>
+);
+const Plus = (props) => (
+  <Icon {...props}>
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </Icon>
+);
+const Trash2 = (props) => (
+  <Icon {...props}>
+    <line x1="4" y1="6" x2="20" y2="6" />
+    <path d="M6 6 L7 20 a2 2 0 0 0 2 2 h6 a2 2 0 0 0 2 -2 L19 6" />
+    <path d="M9 6 V4 a1 1 0 0 1 1 -1 h4 a1 1 0 0 1 1 1 V6" />
+    <line x1="10" y1="10" x2="10" y2="17" />
+    <line x1="14" y1="10" x2="14" y2="17" />
+  </Icon>
+);
+const Loader2 = (props) => (
+  <Icon {...props}>
+    <path d="M21 12a9 9 0 1 1-9-9" />
+  </Icon>
+);
+const Pencil = (props) => (
+  <Icon {...props}>
+    <path d="M12 20 h9" />
+    <path d="M16.5 3.5 a2.121 2.121 0 0 1 3 3 L7 19 l-4 1 1-4 Z" />
+  </Icon>
+);
+const X = (props) => (
+  <Icon {...props}>
+    <line x1="5" y1="5" x2="19" y2="19" />
+    <line x1="19" y1="5" x2="5" y2="19" />
+  </Icon>
+);
+const CalendarIcon = (props) => (
+  <Icon {...props}>
+    <rect x="3" y="4" width="18" height="17" rx="2" />
+    <line x1="3" y1="9" x2="21" y2="9" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+  </Icon>
+);
+const CameraIcon = (props) => (
+  <Icon {...props}>
+    <path d="M4 8 h3 l1.5 -2 h7 l1.5 2 h3 a1 1 0 0 1 1 1 v10 a1 1 0 0 1 -1 1 h-16 a1 1 0 0 1 -1 -1 v-10 a1 1 0 0 1 1 -1 Z" />
+    <circle cx="12" cy="14" r="3.5" />
+  </Icon>
+);
+
+const C = {
+  bg: "#FFFDF9",
+  ink: "#1F2024",
+  soft: "#8F8C97",
+  faint: "#ECE9E4",
+  line: "#F0EDE7",
+};
+
+const CAT = {
+  overview: { main: "#1F2024", soft: "#F1EFEA" },
+  weight: { main: "#0EA394", soft: "#DFF5F1" },
+  meals: { main: "#FF8A3D", soft: "#FFEADB" },
+  exercise: { main: "#FF4D8D", soft: "#FFE1EC" },
+  steps: { main: "#5B7FFF", soft: "#E4E9FF" },
+};
+
+const TABS = [
+  { id: "overview", label: "概要", icon: LayoutGrid },
+  { id: "weight", label: "体重", icon: Scale },
+  { id: "meals", label: "食事", icon: Utensils },
+  { id: "exercise", label: "運動", icon: Dumbbell },
+  { id: "steps", label: "歩数", icon: Footprints },
+];
+
+const STORAGE_KEY = "health-log";
+const uid = () => Math.random().toString(36).slice(2, 10);
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const fmtDate = (d) => {
+  const dt = new Date(d + "T00:00:00");
+  return `${dt.getMonth() + 1}/${dt.getDate()}`;
+};
+const nowTime = () => new Date().toTimeString().slice(0, 5);
+const WEEKDAY_JA = ["日", "月", "火", "水", "木", "金", "土"];
+const fmtDateFull = (d) => {
+  const dt = new Date(d + "T00:00:00");
+  return `${dt.getFullYear()}/${dt.getMonth() + 1}/${dt.getDate()} (${WEEKDAY_JA[dt.getDay()]})`;
+};
+function calcBMI(weightKg, heightCm) {
+  if (!weightKg || !heightCm) return null;
+  const h = heightCm / 100;
+  return weightKg / (h * h);
+}
+function calcStandardWeight(heightCm) {
+  if (!heightCm) return null;
+  const h = heightCm / 100;
+  return 22 * h * h;
+}
+function bmiLabel(bmi) {
+  if (bmi == null) return "";
+  if (bmi < 18.5) return "低体重";
+  if (bmi < 25) return "標準";
+  if (bmi < 30) return "肥満(1度)";
+  if (bmi < 35) return "肥満(2度)";
+  if (bmi < 40) return "肥満(3度)";
+  return "肥満(4度)";
+}
+function targetBmiRange(age) {
+  if (!age) return [18.5, 24.9];
+  if (age < 50) return [18.5, 24.9];
+  if (age < 65) return [20.0, 24.9];
+  return [21.5, 24.9];
+}
+
+async function ocrText(file) {
+  if (!window.Tesseract) throw new Error("OCRライブラリの読み込みに失敗しました");
+  const { data } = await Tesseract.recognize(file, "eng+jpn");
+  return data.text;
+}
+
+function pickNumber(text, pattern) {
+  const m = text.match(pattern);
+  if (!m) return null;
+  return Number(m[1].replace(/,/g, ""));
+}
+
+function pickLargestNumber(text, min, max) {
+  const nums = (text.match(/[\d,]{3,7}/g) || [])
+    .map((s) => Number(s.replace(/,/g, "")))
+    .filter((n) => n >= min && n <= max);
+  return nums.length ? Math.max(...nums) : null;
+}
+
+async function extractSteps(file) {
+  const text = await ocrText(file);
+  const steps = pickNumber(text, /([\d,]{3,7})\s*歩/) ?? pickLargestNumber(text, 100, 100000);
+  if (steps == null) throw new Error("歩数を読み取れませんでした。手入力してください。");
+  return { steps };
+}
+
+async function extractExercise(file) {
+  const text = await ocrText(file);
+  const duration = pickNumber(text, /(\d{1,4})\s*分/);
+  const calories = pickNumber(text, /(\d{1,5})\s*kcal/i);
+  if (duration == null && calories == null) throw new Error("時間・カロリーを読み取れませんでした。手入力してください。");
+  return { duration, calories };
+}
+function DateField({ value, onChange, className, wrapperStyle }) {
+  const inputRef = useRef(null);
+  const openPicker = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    if (el.showPicker) {
+      try { el.showPicker(); return; } catch (e) {}
+    }
+    el.focus();
+  };
+  return (
+    <button type="button" onClick={openPicker}
+      className={className + " relative flex items-center justify-between"}
+      style={{ textAlign: "left", fontSize: 16, color: C.ink, ...wrapperStyle }}>
+      <span>{fmtDateFull(value)}</span>
+      <CalendarIcon size={16} color={C.soft} strokeWidth={2} />
+      <input ref={inputRef} type="date" value={value} max={todayStr()} onChange={onChange} tabIndex={-1} aria-hidden="true"
+        style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none", border: 0, padding: 0 }} />
+    </button>
+  );
+}
+
+function ScreenshotButton({ color, extract, onExtract }) {
+  const fileRef = useRef(null);
+  const [status, setStatus] = useState("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    setStatus("loading");
+    setErrorMsg("");
+    try {
+      const result = await extract(file);
+      onExtract(result);
+      setStatus("idle");
+    } catch (err) {
+      setStatus("error");
+      setErrorMsg((err && err.message) || "読み取りに失敗しました");
+    }
+  };
+
+  return (
+    <div className="mt-2">
+      <button type="button" onClick={() => fileRef.current && fileRef.current.click()}
+        disabled={status === "loading"}
+        className="text-[11px] font-medium flex items-center gap-1 py-1.5 px-2.5 rounded-lg"
+        style={{ color, background: "#fff" }}>
+        <CameraIcon size={12} color={color} strokeWidth={2.5} />
+        {status === "loading" ? "読み取り中…" : "スクショから読み取る"}
+      </button>
+      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
+      {status === "error" && <p className="text-[10px] mt-1" style={{ color: "#FF4D8D" }}>{errorMsg}</p>}
+    </div>
+  );
+}
+
+function HealthTracker() {
+  const [data, setData] = useState({ weights: [], meals: [], exercises: [], steps: [], profile: { height: "", age: "" } });
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [saveError, setSaveError] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setData((prev) => ({ ...prev, ...JSON.parse(raw) }));
+    } catch (e) {
+      // no existing data yet
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const persist = (next) => {
+    setData(next);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      setSaveError(false);
+    } catch (e) {
+      setSaveError(true);
+    }
+  };
+
+  const addWeight = (entry) => persist({ ...data, weights: [...data.weights, entry].sort((a, b) => a.date.localeCompare(b.date)) });
+  const addMeal = (entry) => persist({ ...data, meals: [...data.meals, entry] });
+  const addExercise = (entry) => persist({ ...data, exercises: [...data.exercises, entry] });
+  const addSteps = (entry) => persist({ ...data, steps: [...data.steps, entry].sort((a, b) => a.date.localeCompare(b.date)) });
+  const removeItem = (category, id) => persist({ ...data, [category]: data[category].filter((x) => x.id !== id) });
+  const setProfile = (patch) => persist({ ...data, profile: { ...data.profile, ...patch } });
+  const updateItem = (category, id, patch) => {
+    let next = data[category].map((x) => (x.id === id ? { ...x, ...patch } : x));
+    if (category === "weights" || category === "steps") next = [...next].sort((a, b) => a.date.localeCompare(b.date));
+    persist({ ...data, [category]: next });
+  };
+
+  if (loading) {
+    return (
+      <div style={{ background: C.bg, minHeight: 480 }} className="flex items-center justify-center">
+        <Loader2 className="animate-spin" size={22} color={C.soft} />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: C.bg, color: C.ink, fontFamily: "'Zen Kaku Gothic New', 'Hiragino Sans', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
+        .htj-tab { transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease; }
+        .htj-tab:active { transform: scale(0.96); }
+        input::placeholder { color: #C7C3D9; }
+      `}</style>
+
+      <div className="max-w-2xl mx-auto min-h-[560px]">
+        {/* Top nav */}
+        <div className="flex gap-1.5 px-3 pt-4 pb-2 overflow-x-auto">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            const active = activeTab === t.id;
+            const cat = CAT[t.id];
+            return (
+              <button
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                className="htj-tab flex-1 min-w-[64px] flex flex-col items-center gap-1 py-2.5 rounded-2xl"
+                style={{ color: active ? "#fff" : C.soft, background: active ? cat.main : "transparent" }}
+              >
+                <Icon size={17} strokeWidth={2} />
+                <span className="text-[11px] font-medium tracking-wide">{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="px-6 py-8 md:px-8">
+          {activeTab === "overview" && <Overview data={data} onAddWeight={addWeight} onAddMeal={addMeal} onAddExercise={addExercise} onAddSteps={addSteps} />}
+          {activeTab === "weight" && <WeightTab entries={data.weights} onAdd={addWeight} onRemove={(id) => removeItem("weights", id)} onUpdate={(id, patch) => updateItem("weights", id, patch)} profile={data.profile} onProfileChange={setProfile} />}
+          {activeTab === "meals" && <MealsTab entries={data.meals} onAdd={addMeal} onRemove={(id) => removeItem("meals", id)} onUpdate={(id, patch) => updateItem("meals", id, patch)} />}
+          {activeTab === "exercise" && <ExerciseTab entries={data.exercises} onAdd={addExercise} onRemove={(id) => removeItem("exercises", id)} onUpdate={(id, patch) => updateItem("exercises", id, patch)} />}
+          {activeTab === "steps" && <StepsTab entries={data.steps} onAdd={addSteps} onRemove={(id) => removeItem("steps", id)} onUpdate={(id, patch) => updateItem("steps", id, patch)} />}
+          {saveError && <p className="text-xs mt-4" style={{ color: C.soft }}>保存に失敗しました。もう一度お試しください。</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader({ title, sub, color }) {
+  return (
+    <div className="mb-7 flex items-center gap-2.5">
+      {color && <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />}
+      <div>
+        <h2 className="text-base font-bold tracking-wide">{title}</h2>
+        {sub && <p className="text-xs mt-0.5" style={{ color: C.soft }}>{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+const inputCls = "border-2 bg-white rounded-xl px-3 py-2.5 outline-none w-full";
+const inputStyle = { borderColor: C.faint, fontSize: 16 };
+
+function Field({ label, children, full }) {
+  return (
+    <div style={full ? { gridColumn: "1 / -1" } : undefined}>
+      <label className="block text-[11px] mb-1.5" style={{ color: C.soft }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+const fieldGridStyle = { gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))" };
+
+const chartAxis = { fontSize: 11, fill: C.soft };
+
+function Overview({ data, onAddWeight, onAddMeal, onAddExercise, onAddSteps }) {
+  const today = todayStr();
+  const todaysMeals = data.meals.filter((m) => m.date === today);
+  const todaysExercise = data.exercises.filter((e) => e.date === today);
+  const kcalIn = todaysMeals.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+  const kcalOut = todaysExercise.reduce((s, e) => s + (Number(e.calories) || 0), 0);
+  const latestWeight = data.weights[data.weights.length - 1];
+  const firstWeight = data.weights[0];
+  const weightDelta = latestWeight && firstWeight ? (latestWeight.weight - firstWeight.weight).toFixed(1) : null;
+  const profileHeight = Number(data.profile.height) || null;
+  const bmi = profileHeight && latestWeight ? calcBMI(latestWeight.weight, profileHeight) : null;
+  const todaysStepsEntries = data.steps.filter((s) => s.date === today);
+  const todaysSteps = todaysStepsEntries[todaysStepsEntries.length - 1];
+
+  const weightChart = data.weights.slice(-14).map((w) => ({ date: fmtDate(w.date), 体重: w.weight }));
+
+  const dayMap = {};
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    dayMap[key] = { date: fmtDate(key), 摂取: 0, 消費: 0 };
+  }
+  data.meals.forEach((m) => { if (dayMap[m.date]) dayMap[m.date].摂取 += Number(m.calories) || 0; });
+  data.exercises.forEach((e) => { if (dayMap[e.date]) dayMap[e.date].消費 += Number(e.calories) || 0; });
+  const calChart = Object.values(dayMap);
+
+  const stepsMap = {};
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    stepsMap[key] = { date: fmtDate(key), 歩数: 0 };
+  }
+  data.steps.forEach((s) => { if (stepsMap[s.date]) stepsMap[s.date].歩数 = Number(s.steps) || 0; });
+  const stepsChart = Object.values(stepsMap);
+
+  return (
+    <div>
+      <SectionHeader title="今日" sub={new Date().toLocaleDateString("ja-JP", { month: "long", day: "numeric", weekday: "short" })} />
+
+      <div className="grid gap-3 mb-9" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))" }}>
+        <Stat label="体重" value={latestWeight ? latestWeight.weight : "—"} unit="kg" extra={weightDelta ? `${weightDelta > 0 ? "+" : ""}${weightDelta}` : null} color={CAT.weight.main} bg={CAT.weight.soft} />
+        <Stat label="歩数" value={todaysSteps ? todaysSteps.steps.toLocaleString() : "—"} unit="歩" color={CAT.steps.main} bg={CAT.steps.soft} />
+        <Stat label="摂取" value={kcalIn || "—"} unit="kcal" color={CAT.meals.main} bg={CAT.meals.soft} />
+        <Stat label="消費" value={kcalOut || "—"} unit="kcal" color={CAT.exercise.main} bg={CAT.exercise.soft} />
+        {bmi != null && <Stat label="BMI" value={bmi.toFixed(1)} unit="" extra={bmiLabel(bmi)} color={CAT.weight.main} bg={CAT.weight.soft} />}
+      </div>
+
+      <div className="space-y-3 mb-9">
+        <QuickAddWeight onAdd={onAddWeight} chartData={weightChart} />
+        <QuickAddSteps onAdd={onAddSteps} chartData={stepsChart} />
+        <QuickAddMeal onAdd={onAddMeal} chartData={calChart} />
+        <QuickAddExercise onAdd={onAddExercise} chartData={calChart} />
+      </div>
+
+      {data.weights.length === 0 && data.meals.length === 0 && data.exercises.length === 0 && (
+        <p className="text-sm" style={{ color: C.soft }}>まだ記録がありません。下のフォームから記録を始めましょう。</p>
+      )}
+    </div>
+  );
+}
+
+function QuickAddCard({ color, bg, icon: Icon, label, children }) {
+  return (
+    <div className="rounded-2xl p-3.5" style={{ background: bg }}>
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <Icon size={14} color={color} strokeWidth={2.5} />
+        <span className="text-xs font-bold" style={{ color }}>{label}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+const quickInputCls = "border-0 bg-white rounded-lg px-2.5 py-2 outline-none w-full";
+const quickInputStyle = { fontSize: 16 };
+
+function QuickAddWeight({ onAdd, chartData }) {
+  const [weight, setWeight] = useState("");
+  const [bodyFat, setBodyFat] = useState("");
+  const [date, setDate] = useState(todayStr());
+  const submit = () => {
+    if (!weight) return;
+    onAdd({ id: uid(), date, time: nowTime(), weight: Number(weight), bodyFat: bodyFat ? Number(bodyFat) : null });
+    setWeight(""); setBodyFat("");
+  };
+  return (
+    <QuickAddCard color={CAT.weight.main} bg={CAT.weight.soft} icon={Scale} label="体重">
+      <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))" }}>
+        <DateField value={date} onChange={(e) => setDate(e.target.value)} wrapperStyle={{ gridColumn: "1 / -1" }}
+          className={quickInputCls} />
+        <input type="number" inputMode="decimal" step="0.1" placeholder="kg" value={weight} onChange={(e) => setWeight(e.target.value)}
+          className={quickInputCls} style={quickInputStyle} />
+        <input type="number" inputMode="decimal" step="0.1" placeholder="体脂肪%" value={bodyFat} onChange={(e) => setBodyFat(e.target.value)}
+          className={quickInputCls} style={quickInputStyle} />
+        <button onClick={submit} className="p-2.5 rounded-lg flex items-center justify-center" style={{ background: CAT.weight.main, gridColumn: "1 / -1" }}>
+          <Plus size={16} color="#fff" />
+        </button>
+      </div>
+      {chartData.length > 1 && (
+        <div className="mt-3 -mx-1">
+          <ResponsiveContainer width="100%" height={140}>
+            <LineChart data={chartData}>
+              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <XAxis dataKey="date" tick={chartAxis} axisLine={false} tickLine={false} />
+              <YAxis tick={chartAxis} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={30} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Line type="monotone" dataKey="体重" stroke={CAT.weight.main} strokeWidth={2.5} dot={{ r: 3, fill: CAT.weight.main }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </QuickAddCard>
+  );
+}
+
+function QuickAddSteps({ onAdd, chartData }) {
+  const [steps, setSteps] = useState("");
+  const [date, setDate] = useState(todayStr());
+  const submit = () => {
+    if (!steps) return;
+    onAdd({ id: uid(), date, time: nowTime(), steps: Number(steps) });
+    setSteps("");
+  };
+  const handleExtract = (result) => {
+    if (result.steps != null) setSteps(String(result.steps));
+    if (result.date) setDate(result.date);
+  };
+  return (
+    <QuickAddCard color={CAT.steps.main} bg={CAT.steps.soft} icon={Footprints} label="歩数">
+      <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))" }}>
+        <DateField value={date} onChange={(e) => setDate(e.target.value)} wrapperStyle={{ gridColumn: "1 / -1" }}
+          className={quickInputCls} />
+        <input type="number" inputMode="numeric" placeholder="歩数" value={steps} onChange={(e) => setSteps(e.target.value)}
+          className={quickInputCls} style={quickInputStyle} />
+        <button onClick={submit} className="p-2.5 rounded-lg flex items-center justify-center" style={{ background: CAT.steps.main }}>
+          <Plus size={16} color="#fff" />
+        </button>
+      </div>
+      <ScreenshotButton color={CAT.steps.main} extract={extractSteps} onExtract={handleExtract} />
+      {chartData.some((d) => d.歩数 > 0) && (
+        <div className="mt-3 -mx-1">
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={chartData}>
+              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <XAxis dataKey="date" tick={chartAxis} axisLine={false} tickLine={false} />
+              <YAxis tick={chartAxis} axisLine={false} tickLine={false} width={34} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Bar dataKey="歩数" fill={CAT.steps.main} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </QuickAddCard>
+  );
+}
+
+function QuickAddMeal({ onAdd, chartData }) {
+  const [name, setName] = useState("");
+  const [calories, setCalories] = useState("");
+  const [date, setDate] = useState(todayStr());
+  const submit = () => {
+    if (!name) return;
+    onAdd({ id: uid(), date, time: nowTime(), name, calories: calories ? Number(calories) : 0 });
+    setName(""); setCalories("");
+  };
+  return (
+    <QuickAddCard color={CAT.meals.main} bg={CAT.meals.soft} icon={Utensils} label="食事">
+      <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))" }}>
+        <DateField value={date} onChange={(e) => setDate(e.target.value)} wrapperStyle={{ gridColumn: "1 / -1" }}
+          className={quickInputCls} />
+        <input type="text" placeholder="食べたもの" value={name} onChange={(e) => setName(e.target.value)}
+          className={quickInputCls} style={{ ...quickInputStyle, gridColumn: "1 / -1" }} />
+        <input type="number" inputMode="numeric" placeholder="kcal" value={calories} onChange={(e) => setCalories(e.target.value)}
+          className={quickInputCls} style={quickInputStyle} />
+        <button onClick={submit} className="p-2.5 rounded-lg flex items-center justify-center" style={{ background: CAT.meals.main }}>
+          <Plus size={16} color="#fff" />
+        </button>
+      </div>
+      {chartData.some((d) => d.摂取 > 0 || d.消費 > 0) && (
+        <div className="mt-3 -mx-1">
+          <ResponsiveContainer width="100%" height={140}>
+            <ScatterChart>
+              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <XAxis dataKey="date" type="category" allowDuplicatedCategory={false} tick={chartAxis} axisLine={false} tickLine={false} />
+              <YAxis type="number" tick={chartAxis} axisLine={false} tickLine={false} width={30} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Scatter name="摂取" data={chartData} dataKey="摂取" fill={CAT.meals.main} />
+              <Scatter name="消費" data={chartData} dataKey="消費" fill={CAT.exercise.main} />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </QuickAddCard>
+  );
+}
+
+function QuickAddExercise({ onAdd, chartData }) {
+  const [type, setType] = useState("");
+  const [duration, setDuration] = useState("");
+  const [calories, setCalories] = useState("");
+  const [date, setDate] = useState(todayStr());
+  const submit = () => {
+    if (!type) return;
+    onAdd({ id: uid(), date, time: nowTime(), type, duration: duration ? Number(duration) : null, calories: calories ? Number(calories) : 0 });
+    setType(""); setDuration(""); setCalories("");
+  };
+  const handleExtract = (result) => {
+    if (result.type) setType(result.type);
+    if (result.duration != null) setDuration(String(result.duration));
+    if (result.calories != null) setCalories(String(result.calories));
+    if (result.date) setDate(result.date);
+  };
+  return (
+    <QuickAddCard color={CAT.exercise.main} bg={CAT.exercise.soft} icon={Dumbbell} label="運動">
+      <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))" }}>
+        <DateField value={date} onChange={(e) => setDate(e.target.value)} wrapperStyle={{ gridColumn: "1 / -1" }}
+          className={quickInputCls} />
+        <input type="text" placeholder="種目" value={type} onChange={(e) => setType(e.target.value)}
+          className={quickInputCls} style={{ ...quickInputStyle, gridColumn: "1 / -1" }} />
+        <input type="number" inputMode="numeric" placeholder="分" value={duration} onChange={(e) => setDuration(e.target.value)}
+          className={quickInputCls} style={quickInputStyle} />
+        <input type="number" inputMode="numeric" placeholder="kcal" value={calories} onChange={(e) => setCalories(e.target.value)}
+          className={quickInputCls} style={quickInputStyle} />
+        <button onClick={submit} className="p-2.5 rounded-lg flex items-center justify-center" style={{ background: CAT.exercise.main, gridColumn: "1 / -1" }}>
+          <Plus size={16} color="#fff" />
+        </button>
+      </div>
+      <ScreenshotButton color={CAT.exercise.main} extract={extractExercise} onExtract={handleExtract} />
+      {chartData.some((d) => d.摂取 > 0 || d.消費 > 0) && (
+        <div className="mt-3 -mx-1">
+          <ResponsiveContainer width="100%" height={140}>
+            <ScatterChart>
+              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <XAxis dataKey="date" type="category" allowDuplicatedCategory={false} tick={chartAxis} axisLine={false} tickLine={false} />
+              <YAxis type="number" tick={chartAxis} axisLine={false} tickLine={false} width={30} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Scatter name="摂取" data={chartData} dataKey="摂取" fill={CAT.meals.main} />
+              <Scatter name="消費" data={chartData} dataKey="消費" fill={CAT.exercise.main} />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </QuickAddCard>
+  );
+}
+
+function Stat({ label, value, unit, extra, color, bg }) {
+  return (
+    <div className="rounded-2xl p-3" style={{ background: bg }}>
+      <p className="text-[11px] font-medium" style={{ color }}>{label}</p>
+      <p className="text-xl font-bold mt-1" style={{ color: C.ink }}>
+        {value} <span className="text-[10px] font-normal" style={{ color: C.soft }}>{value !== "—" ? unit : ""}</span>
+      </p>
+      {extra && <p className="text-[10px] mt-0.5 font-medium" style={{ color }}>{extra}</p>}
+    </div>
+  );
+}
+
+
+function WeightTab({ entries, onAdd, onRemove, onUpdate, profile, onProfileChange }) {
+  const [weight, setWeight] = useState("");
+  const [bodyFat, setBodyFat] = useState("");
+  const [date, setDate] = useState(todayStr());
+  const [editingId, setEditingId] = useState(null);
+
+  const profileHeight = Number(profile.height) || null;
+  const profileAge = Number(profile.age) || null;
+  const latestWeight = entries[entries.length - 1];
+  const bmi = profileHeight && latestWeight ? calcBMI(latestWeight.weight, profileHeight) : null;
+  const standardWeight = profileHeight ? calcStandardWeight(profileHeight) : null;
+  const bmiRange = targetBmiRange(profileAge);
+  const targetWeightMin = profileHeight ? bmiRange[0] * (profileHeight / 100) ** 2 : null;
+  const targetWeightMax = profileHeight ? bmiRange[1] * (profileHeight / 100) ** 2 : null;
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setDate(item.date);
+    setWeight(String(item.weight));
+    setBodyFat(item.bodyFat !== null && item.bodyFat !== undefined ? String(item.bodyFat) : "");
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDate(todayStr()); setWeight(""); setBodyFat("");
+  };
+  const submit = () => {
+    if (!weight) return;
+    const payload = { date, weight: Number(weight), bodyFat: bodyFat ? Number(bodyFat) : null };
+    if (editingId) {
+      onUpdate(editingId, payload);
+      cancelEdit();
+    } else {
+      onAdd({ id: uid(), time: nowTime(), ...payload });
+      setWeight(""); setBodyFat("");
+    }
+  };
+
+  const weightChart = entries.slice(-14).map((e) => ({ date: fmtDate(e.date), 体重: e.weight }));
+  const bodyFatChart = entries
+    .filter((e) => e.bodyFat !== null && e.bodyFat !== undefined)
+    .slice(-14)
+    .map((e) => ({ date: fmtDate(e.date), 体脂肪率: e.bodyFat }));
+
+  return (
+    <div>
+      <SectionHeader title="体重" sub="体重を記録" color={CAT.weight.main} />
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6 p-3 rounded-xl" style={{ background: CAT.weight.soft }}>
+        <span className="text-[11px] font-bold shrink-0" style={{ color: CAT.weight.main }}>プロフィール</span>
+        <div className="flex items-center gap-1.5">
+          <input type="number" inputMode="decimal" step="0.1" placeholder="身長" value={profile.height}
+            onChange={(e) => onProfileChange({ height: e.target.value })}
+            className="border-0 bg-white rounded-lg px-2 py-1.5 outline-none" style={{ fontSize: 14, width: 64 }} />
+          <span className="text-[11px]" style={{ color: C.soft }}>cm</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <input type="number" inputMode="numeric" placeholder="年齢" value={profile.age}
+            onChange={(e) => onProfileChange({ age: e.target.value })}
+            className="border-0 bg-white rounded-lg px-2 py-1.5 outline-none" style={{ fontSize: 14, width: 56 }} />
+          <span className="text-[11px]" style={{ color: C.soft }}>歳</span>
+        </div>
+      </div>
+
+      {editingId && (
+        <div className="flex items-center gap-2 mb-3 -mt-4">
+          <span className="text-xs font-medium" style={{ color: CAT.weight.main }}>記録を編集中</span>
+          <button onClick={cancelEdit} className="p-1 rounded-full" style={{ background: CAT.weight.soft }}>
+            <X size={11} color={CAT.weight.main} />
+          </button>
+        </div>
+      )}
+      <div className="grid gap-3 mb-10" style={fieldGridStyle}>
+        <Field label="日付" full>
+          <DateField value={date} onChange={(e) => setDate(e.target.value)}
+            className={inputCls} />
+        </Field>
+        <Field label="体重 (kg)">
+          <input type="number" inputMode="decimal" step="0.1" placeholder="0.0" value={weight} onChange={(e) => setWeight(e.target.value)}
+            className={inputCls} style={inputStyle} />
+        </Field>
+        <Field label="体脂肪率 (%)">
+          <input type="number" inputMode="decimal" step="0.1" placeholder="0.0" value={bodyFat} onChange={(e) => setBodyFat(e.target.value)}
+            className={inputCls} style={inputStyle} />
+        </Field>
+        <button onClick={submit} className="text-sm font-medium flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl" style={{ color: "#fff", background: CAT.weight.main, gridColumn: "1 / -1" }}>
+          <Plus size={15} /> {editingId ? "更新" : "記録"}
+        </button>
+      </div>
+
+      {profileHeight != null && (
+        <div className="mb-9 p-4 rounded-2xl grid gap-3" style={{ background: CAT.weight.soft, gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))" }}>
+          <div>
+            <p className="text-[11px] font-medium" style={{ color: CAT.weight.main }}>現在のBMI</p>
+            <p className="text-lg font-bold mt-0.5" style={{ color: C.ink }}>{bmi != null ? bmi.toFixed(1) : "—"}</p>
+            {bmi != null && <p className="text-[10px] font-medium mt-0.5" style={{ color: CAT.weight.main }}>{bmiLabel(bmi)}</p>}
+          </div>
+          <div>
+            <p className="text-[11px] font-medium" style={{ color: CAT.weight.main }}>標準体重</p>
+            <p className="text-lg font-bold mt-0.5" style={{ color: C.ink }}>{standardWeight.toFixed(1)}<span className="text-[10px] font-normal" style={{ color: C.soft }}> kg</span></p>
+          </div>
+          <div>
+            <p className="text-[11px] font-medium" style={{ color: CAT.weight.main }}>目標体重</p>
+            <p className="text-sm font-bold mt-0.5" style={{ color: C.ink }}>{targetWeightMin.toFixed(1)}〜{targetWeightMax.toFixed(1)}<span className="text-[10px] font-normal" style={{ color: C.soft }}> kg</span></p>
+          </div>
+        </div>
+      )}
+
+      {weightChart.length > 1 && (
+        <div className="mb-9 p-4 rounded-2xl" style={{ background: CAT.weight.soft }}>
+          <p className="text-xs font-medium mb-3" style={{ color: CAT.weight.main }}>体重の推移</p>
+          <ResponsiveContainer width="100%" height={140}>
+            <LineChart data={weightChart}>
+              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <XAxis dataKey="date" tick={chartAxis} axisLine={false} tickLine={false} />
+              <YAxis tick={chartAxis} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={30} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Line type="monotone" dataKey="体重" stroke={CAT.weight.main} strokeWidth={2.5} dot={{ r: 3, fill: CAT.weight.main }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {bodyFatChart.length > 1 && (
+        <div className="mb-9 p-4 rounded-2xl" style={{ background: CAT.weight.soft }}>
+          <p className="text-xs font-medium mb-3" style={{ color: CAT.weight.main }}>体脂肪率の推移</p>
+          <ResponsiveContainer width="100%" height={140}>
+            <ScatterChart>
+              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <XAxis dataKey="date" type="category" allowDuplicatedCategory={false} tick={chartAxis} axisLine={false} tickLine={false} />
+              <YAxis dataKey="体脂肪率" type="number" tick={chartAxis} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={30} unit="%" />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Scatter data={bodyFatChart} fill={CAT.weight.main} />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <EntryList items={[...entries].reverse()} onRemove={onRemove} onEdit={startEdit} editingId={editingId} color={CAT.weight.main}
+        render={(e) => `${e.weight}kg${e.bodyFat ? ` ・ 体脂肪 ${e.bodyFat}%` : ""}`} />
+    </div>
+  );
+}
+
+function MealsTab({ entries, onAdd, onRemove, onUpdate }) {
+  const [name, setName] = useState("");
+  const [calories, setCalories] = useState("");
+  const [time, setTime] = useState(nowTime());
+  const [date, setDate] = useState(todayStr());
+  const [editingId, setEditingId] = useState(null);
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setDate(item.date);
+    setName(item.name);
+    setCalories(item.calories ? String(item.calories) : "");
+    setTime(item.time || "");
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDate(todayStr()); setName(""); setCalories(""); setTime(nowTime());
+  };
+  const submit = () => {
+    if (!name) return;
+    const payload = { date, time: time || null, name, calories: calories ? Number(calories) : 0 };
+    if (editingId) {
+      onUpdate(editingId, payload);
+      cancelEdit();
+    } else {
+      onAdd({ id: uid(), ...payload });
+      setName(""); setCalories(""); setTime(nowTime());
+    }
+  };
+
+  return (
+    <div>
+      <SectionHeader title="食事" sub="食べたものを記録" color={CAT.meals.main} />
+      {editingId && (
+        <div className="flex items-center gap-2 mb-3 -mt-4">
+          <span className="text-xs font-medium" style={{ color: CAT.meals.main }}>記録を編集中</span>
+          <button onClick={cancelEdit} className="p-1 rounded-full" style={{ background: CAT.meals.soft }}>
+            <X size={11} color={CAT.meals.main} />
+          </button>
+        </div>
+      )}
+      <div className="grid gap-3 mb-10" style={fieldGridStyle}>
+        <Field label="日付" full>
+          <DateField value={date} onChange={(e) => setDate(e.target.value)}
+            className={inputCls} />
+        </Field>
+        <Field label="内容" full>
+          <input type="text" placeholder="例：鶏むね肉サラダ" value={name} onChange={(e) => setName(e.target.value)}
+            className={inputCls} style={inputStyle} />
+        </Field>
+        <Field label="kcal">
+          <input type="number" inputMode="numeric" placeholder="0" value={calories} onChange={(e) => setCalories(e.target.value)}
+            className={inputCls} style={inputStyle} />
+        </Field>
+        <Field label="時刻">
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
+            className={inputCls} style={inputStyle} />
+        </Field>
+        <button onClick={submit} className="text-sm font-medium flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl" style={{ color: "#fff", background: CAT.meals.main, gridColumn: "1 / -1" }}>
+          <Plus size={15} /> {editingId ? "更新" : "記録"}
+        </button>
+      </div>
+      <EntryList items={[...entries].reverse()} onRemove={onRemove} onEdit={startEdit} editingId={editingId} color={CAT.meals.main}
+        render={(e) => `${e.name}${e.calories ? ` ・ ${e.calories}kcal` : ""}`} />
+    </div>
+  );
+}
+
+function ExerciseTab({ entries, onAdd, onRemove, onUpdate }) {
+  const [type, setType] = useState("");
+  const [duration, setDuration] = useState("");
+  const [calories, setCalories] = useState("");
+  const [date, setDate] = useState(todayStr());
+  const [editingId, setEditingId] = useState(null);
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setDate(item.date);
+    setType(item.type);
+    setDuration(item.duration !== null && item.duration !== undefined ? String(item.duration) : "");
+    setCalories(item.calories ? String(item.calories) : "");
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDate(todayStr()); setType(""); setDuration(""); setCalories("");
+  };
+  const submit = () => {
+    if (!type) return;
+    const payload = { date, type, duration: duration ? Number(duration) : null, calories: calories ? Number(calories) : 0 };
+    if (editingId) {
+      onUpdate(editingId, payload);
+      cancelEdit();
+    } else {
+      onAdd({ id: uid(), time: nowTime(), ...payload });
+      setType(""); setDuration(""); setCalories("");
+    }
+  };
+  const handleExtract = (result) => {
+    if (result.type) setType(result.type);
+    if (result.duration != null) setDuration(String(result.duration));
+    if (result.calories != null) setCalories(String(result.calories));
+    if (result.date) setDate(result.date);
+  };
+
+  return (
+    <div>
+      <SectionHeader title="運動" sub="運動内容を記録" color={CAT.exercise.main} />
+      {editingId && (
+        <div className="flex items-center gap-2 mb-3 -mt-4">
+          <span className="text-xs font-medium" style={{ color: CAT.exercise.main }}>記録を編集中</span>
+          <button onClick={cancelEdit} className="p-1 rounded-full" style={{ background: CAT.exercise.soft }}>
+            <X size={11} color={CAT.exercise.main} />
+          </button>
+        </div>
+      )}
+      <div className="grid gap-3 mb-10" style={fieldGridStyle}>
+        <Field label="日付" full>
+          <DateField value={date} onChange={(e) => setDate(e.target.value)}
+            className={inputCls} />
+        </Field>
+        <Field label="種目" full>
+          <input type="text" placeholder="例：ジョギング" value={type} onChange={(e) => setType(e.target.value)}
+            className={inputCls} style={inputStyle} />
+        </Field>
+        <Field label="時間 (分)">
+          <input type="number" inputMode="numeric" placeholder="0" value={duration} onChange={(e) => setDuration(e.target.value)}
+            className={inputCls} style={inputStyle} />
+        </Field>
+        <Field label="消費 (kcal)">
+          <input type="number" inputMode="numeric" placeholder="0" value={calories} onChange={(e) => setCalories(e.target.value)}
+            className={inputCls} style={inputStyle} />
+        </Field>
+        <button onClick={submit} className="text-sm font-medium flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl" style={{ color: "#fff", background: CAT.exercise.main, gridColumn: "1 / -1" }}>
+          <Plus size={15} /> {editingId ? "更新" : "記録"}
+        </button>
+      </div>
+      <div className="-mt-7 mb-9">
+        <ScreenshotButton color={CAT.exercise.main} extract={extractExercise} onExtract={handleExtract} />
+      </div>
+      <EntryList items={[...entries].reverse()} onRemove={onRemove} onEdit={startEdit} editingId={editingId} color={CAT.exercise.main}
+        render={(e) => `${e.type}${e.duration ? ` ・ ${e.duration}分` : ""}${e.calories ? ` ・ ${e.calories}kcal` : ""}`} />
+    </div>
+  );
+}
+
+function StepsTab({ entries, onAdd, onRemove, onUpdate }) {
+  const [steps, setSteps] = useState("");
+  const [date, setDate] = useState(todayStr());
+  const [editingId, setEditingId] = useState(null);
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setDate(item.date);
+    setSteps(String(item.steps));
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDate(todayStr()); setSteps("");
+  };
+  const submit = () => {
+    if (!steps) return;
+    const payload = { date, steps: Number(steps) };
+    if (editingId) {
+      onUpdate(editingId, payload);
+      cancelEdit();
+    } else {
+      onAdd({ id: uid(), time: nowTime(), ...payload });
+      setSteps("");
+    }
+  };
+  const handleExtract = (result) => {
+    if (result.steps != null) setSteps(String(result.steps));
+    if (result.date) setDate(result.date);
+  };
+
+  const stepsChart = entries.slice(-14).map((s) => ({ date: fmtDate(s.date), 歩数: s.steps }));
+
+  return (
+    <div>
+      <SectionHeader title="歩数" sub="歩数を記録" color={CAT.steps.main} />
+      {editingId && (
+        <div className="flex items-center gap-2 mb-3 -mt-4">
+          <span className="text-xs font-medium" style={{ color: CAT.steps.main }}>記録を編集中</span>
+          <button onClick={cancelEdit} className="p-1 rounded-full" style={{ background: CAT.steps.soft }}>
+            <X size={11} color={CAT.steps.main} />
+          </button>
+        </div>
+      )}
+      <div className="grid gap-3 mb-10" style={fieldGridStyle}>
+        <Field label="日付" full>
+          <DateField value={date} onChange={(e) => setDate(e.target.value)}
+            className={inputCls} />
+        </Field>
+        <Field label="歩数">
+          <input type="number" inputMode="numeric" placeholder="0" value={steps} onChange={(e) => setSteps(e.target.value)}
+            className={inputCls} style={inputStyle} />
+        </Field>
+        <button onClick={submit} className="text-sm font-medium flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl" style={{ color: "#fff", background: CAT.steps.main, gridColumn: "1 / -1" }}>
+          <Plus size={15} /> {editingId ? "更新" : "記録"}
+        </button>
+      </div>
+      <div className="-mt-7 mb-9">
+        <ScreenshotButton color={CAT.steps.main} extract={extractSteps} onExtract={handleExtract} />
+      </div>
+
+      {stepsChart.length > 1 && (
+        <div className="mb-9 p-4 rounded-2xl" style={{ background: CAT.steps.soft }}>
+          <p className="text-xs font-medium mb-3" style={{ color: CAT.steps.main }}>歩数の推移</p>
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={stepsChart}>
+              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <XAxis dataKey="date" tick={chartAxis} axisLine={false} tickLine={false} />
+              <YAxis tick={chartAxis} axisLine={false} tickLine={false} width={34} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Bar dataKey="歩数" fill={CAT.steps.main} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <EntryList items={[...entries].reverse()} onRemove={onRemove} onEdit={startEdit} editingId={editingId} color={CAT.steps.main}
+        render={(e) => `${e.steps.toLocaleString()}歩`} />
+    </div>
+  );
+}
+
+function EntryList({ items, onRemove, onEdit, editingId, render, color }) {
+  if (items.length === 0) {
+    return <p className="text-sm" style={{ color: C.soft }}>まだ記録がありません。</p>;
+  }
+  return (
+    <div className="space-y-1.5">
+      {items.map((item) => (
+        <div key={item.id} className="flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl"
+          style={{ background: item.id === editingId ? C.faint : C.line }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex flex-col items-start shrink-0" style={{ width: 44 }}>
+              <span className="text-[12px] font-bold" style={{ color }}>{fmtDate(item.date)}</span>
+              {item.time && <span className="text-[10px] font-medium" style={{ color: C.soft }}>{item.time}</span>}
+            </div>
+            <span className="text-[13px] font-semibold truncate" style={{ color: C.ink }}>{render(item)}</span>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <button onClick={() => onEdit(item)} className="p-1.5 -m-1.5 hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
+              <Pencil size={14} color={C.soft} />
+            </button>
+            <button onClick={() => onRemove(item.id)} className="p-1.5 -m-1.5 hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
+              <Trash2 size={14} color={C.soft} />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<HealthTracker />);
+</script>
+<script>
+  var src = document.getElementById("app-source").textContent;
+  var out = Babel.transform(src, { presets: [["react", { runtime: "classic" }]] }).code;
+  var s = document.createElement("script");
+  s.textContent = out;
+  document.body.appendChild(s);
+</script>
+</body>
+</html>
