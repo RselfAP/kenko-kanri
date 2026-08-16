@@ -98,12 +98,6 @@ const Pencil = (props) => (
     <path d="M16.5 3.5 a2.121 2.121 0 0 1 3 3 L7 19 l-4 1 1-4 Z" />
   </Icon>
 );
-const X = (props) => (
-  <Icon {...props}>
-    <line x1="5" y1="5" x2="19" y2="19" />
-    <line x1="19" y1="5" x2="5" y2="19" />
-  </Icon>
-);
 const CalendarIcon = (props) => (
   <Icon {...props}>
     <rect x="3" y="4" width="18" height="17" rx="2" />
@@ -194,6 +188,17 @@ function targetBmiRange(age) {
   if (age < 50) return [18.5, 24.9];
   if (age < 65) return [20.0, 24.9];
   return [21.5, 24.9];
+}
+// 一般的な基礎代謝(ミフリン・セントジオール式): 年齢・身長・体重・性別から算出
+function calcBMRStandard(weightKg, heightCm, age, gender) {
+  if (!weightKg || !heightCm || !age) return null;
+  const base = 10 * weightKg + 6.25 * heightCm - 5 * age;
+  return gender === "female" ? base - 161 : base + 5;
+}
+// 筋肉量を加味した基礎代謝(キャッチ・マックardle式): 除脂肪体重(≒筋肉量)から算出。年齢・性別に依存しないため実測値の変化がより反映される
+function calcBMRLeanMass(leanMassKg) {
+  if (!leanMassKg) return null;
+  return 370 + 21.6 * leanMassKg;
 }
 
 async function ocrText(file) {
@@ -828,6 +833,10 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
   const [muscleMass, setMuscleMass] = useState("");
   const [date, setDate] = useState(todayStr());
   const [editingId, setEditingId] = useState(null);
+  const [editDate, setEditDate] = useState(todayStr());
+  const [editWeight, setEditWeight] = useState("");
+  const [editBodyFat, setEditBodyFat] = useState("");
+  const [editMuscleMass, setEditMuscleMass] = useState("");
 
   const profileHeight = Number(profile.height) || null;
   const profileAge = Number(profile.age) || null;
@@ -838,27 +847,36 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
   const targetWeightMin = profileHeight ? bmiRange[0] * (profileHeight / 100) ** 2 : null;
   const targetWeightMax = profileHeight ? bmiRange[1] * (profileHeight / 100) ** 2 : null;
 
+  const leanMass = latestWeight
+    ? latestWeight.muscleMass ?? (latestWeight.bodyFat != null ? latestWeight.weight * (1 - latestWeight.bodyFat / 100) : null)
+    : null;
+  const bmrStandard = profileHeight && profileAge && latestWeight
+    ? calcBMRStandard(latestWeight.weight, profileHeight, profileAge, profile.gender || "male")
+    : null;
+  const bmrLeanMass = calcBMRLeanMass(leanMass);
+
   const startEdit = (item) => {
     setEditingId(item.id);
-    setDate(item.date);
-    setWeight(String(item.weight));
-    setBodyFat(item.bodyFat !== null && item.bodyFat !== undefined ? String(item.bodyFat) : "");
-    setMuscleMass(item.muscleMass !== null && item.muscleMass !== undefined ? String(item.muscleMass) : "");
+    setEditDate(item.date);
+    setEditWeight(String(item.weight));
+    setEditBodyFat(item.bodyFat !== null && item.bodyFat !== undefined ? String(item.bodyFat) : "");
+    setEditMuscleMass(item.muscleMass !== null && item.muscleMass !== undefined ? String(item.muscleMass) : "");
   };
-  const cancelEdit = () => {
-    setEditingId(null);
-    setDate(todayStr()); setWeight(""); setBodyFat(""); setMuscleMass("");
+  const cancelEdit = () => setEditingId(null);
+  const saveEdit = () => {
+    if (!editWeight) return;
+    onUpdate(editingId, {
+      date: editDate,
+      weight: Number(editWeight),
+      bodyFat: editBodyFat ? Number(editBodyFat) : null,
+      muscleMass: editMuscleMass ? Number(editMuscleMass) : null,
+    });
+    cancelEdit();
   };
   const submit = () => {
     if (!weight) return;
-    const payload = { date, weight: Number(weight), bodyFat: bodyFat ? Number(bodyFat) : null, muscleMass: muscleMass ? Number(muscleMass) : null };
-    if (editingId) {
-      onUpdate(editingId, payload);
-      cancelEdit();
-    } else {
-      onAdd({ id: uid(), time: nowTime(), ...payload });
-      setWeight(""); setBodyFat(""); setMuscleMass("");
-    }
+    onAdd({ id: uid(), time: nowTime(), date, weight: Number(weight), bodyFat: bodyFat ? Number(bodyFat) : null, muscleMass: muscleMass ? Number(muscleMass) : null });
+    setWeight(""); setBodyFat(""); setMuscleMass("");
   };
 
   const weightChart = avgByDate(entries, "weight").slice(-14).map((d) => ({ date: fmtDate(d.date), 体重: Number(d.value.toFixed(1)) }));
@@ -887,16 +905,20 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
             className="border-0 bg-white rounded-lg px-2 py-1.5 outline-none" style={{ fontSize: 14, width: 56 }} />
           <span className="text-[11px]" style={{ color: C.soft }}>歳</span>
         </div>
+        <div className="flex items-center gap-1 rounded-lg bg-white p-0.5">
+          {[["male", "男性"], ["female", "女性"]].map(([v, label]) => (
+            <button key={v} type="button" onClick={() => onProfileChange({ gender: v })}
+              className="text-[11px] font-medium px-2 py-1 rounded-md"
+              style={{
+                background: (profile.gender || "male") === v ? CAT.weight.main : "transparent",
+                color: (profile.gender || "male") === v ? "#fff" : C.soft,
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {editingId && (
-        <div className="flex items-center gap-2 mb-3 -mt-4">
-          <span className="text-xs font-medium" style={{ color: CAT.weight.main }}>記録を編集中</span>
-          <button onClick={cancelEdit} className="p-1 rounded-full" style={{ background: CAT.weight.soft }}>
-            <X size={11} color={CAT.weight.main} />
-          </button>
-        </div>
-      )}
       <div className="grid gap-3 mb-10" style={fieldGridStyle}>
         <Field label="日付" full>
           <DateField value={date} onChange={(e) => setDate(e.target.value)}
@@ -915,7 +937,7 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
             className={inputCls} style={inputStyle} />
         </Field>
         <button onClick={submit} className="text-sm font-medium flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl" style={{ color: "#fff", background: CAT.weight.main, gridColumn: "1 / -1" }}>
-          <Plus size={15} /> {editingId ? "更新" : "記録"}
+          <Plus size={15} /> 記録
         </button>
       </div>
       <div className="-mt-7 mb-9">
@@ -938,6 +960,23 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
           <div>
             <p className="text-[11px] font-medium" style={{ color: CAT.weight.main }}>目標体重</p>
             <p className="text-sm font-bold mt-0.5" style={{ color: C.ink }}>{targetWeightMin.toFixed(1)}〜{targetWeightMax.toFixed(1)}<span className="text-[10px] font-normal" style={{ color: C.soft }}> kg</span></p>
+          </div>
+        </div>
+      )}
+
+      {(bmrStandard != null || bmrLeanMass != null) && (
+        <div className="mb-9 p-4 rounded-2xl grid gap-3" style={{ background: CAT.weight.soft, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+          <div>
+            <p className="text-[11px] font-medium" style={{ color: CAT.weight.main }}>基礎代謝(一般)</p>
+            <p className="text-lg font-bold mt-0.5" style={{ color: C.ink }}>{bmrStandard != null ? Math.round(bmrStandard) : "—"}<span className="text-[10px] font-normal" style={{ color: C.soft }}> kcal/日</span></p>
+            <p className="text-[10px] mt-0.5" style={{ color: C.soft }}>年齢・身長・体重・性別から算出</p>
+          </div>
+          <div>
+            <p className="text-[11px] font-medium" style={{ color: CAT.weight.main }}>基礎代謝(筋肉量を加味)</p>
+            <p className="text-lg font-bold mt-0.5" style={{ color: C.ink }}>{bmrLeanMass != null ? Math.round(bmrLeanMass) : "—"}<span className="text-[10px] font-normal" style={{ color: C.soft }}> kcal/日</span></p>
+            <p className="text-[10px] mt-0.5" style={{ color: C.soft }}>
+              {leanMass != null ? `除脂肪体重(≒筋肉量) ${leanMass.toFixed(1)}kgから算出` : "筋肉量または体脂肪率の記録が必要です"}
+            </p>
           </div>
         </div>
       )}
@@ -988,7 +1027,22 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
       )}
 
       <EntryList items={[...entries].reverse()} onRemove={onRemove} onEdit={startEdit} editingId={editingId} color={CAT.weight.main}
-        render={(e) => `${e.weight}kg${e.bodyFat ? ` ・ 体脂肪 ${e.bodyFat}%` : ""}${e.muscleMass ? ` ・ 筋肉量 ${e.muscleMass}kg` : ""}`} />
+        render={(e) => `${e.weight}kg${e.bodyFat ? ` ・ 体脂肪 ${e.bodyFat}%` : ""}${e.muscleMass ? ` ・ 筋肉量 ${e.muscleMass}kg` : ""}`}
+        renderEdit={() => (
+          <div>
+            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))" }}>
+              <DateField value={editDate} onChange={(e) => setEditDate(e.target.value)} wrapperStyle={{ gridColumn: "1 / -1" }}
+                className={quickInputCls} />
+              <input type="number" inputMode="decimal" step="0.1" placeholder="kg" value={editWeight} onChange={(e) => setEditWeight(e.target.value)}
+                className={quickInputCls} style={quickInputStyle} />
+              <input type="number" inputMode="decimal" step="0.1" placeholder="体脂肪%" value={editBodyFat} onChange={(e) => setEditBodyFat(e.target.value)}
+                className={quickInputCls} style={quickInputStyle} />
+              <input type="number" inputMode="decimal" step="0.1" placeholder="筋肉量kg" value={editMuscleMass} onChange={(e) => setEditMuscleMass(e.target.value)}
+                className={quickInputCls} style={quickInputStyle} />
+            </div>
+            <InlineEditActions onSave={saveEdit} onCancel={cancelEdit} color={CAT.weight.main} />
+          </div>
+        )} />
     </div>
   );
 }
@@ -999,41 +1053,33 @@ function MealsTab({ entries, onAdd, onRemove, onUpdate }) {
   const [time, setTime] = useState(nowTime());
   const [date, setDate] = useState(todayStr());
   const [editingId, setEditingId] = useState(null);
+  const [editDate, setEditDate] = useState(todayStr());
+  const [editName, setEditName] = useState("");
+  const [editCalories, setEditCalories] = useState("");
+  const [editTime, setEditTime] = useState("");
 
   const startEdit = (item) => {
     setEditingId(item.id);
-    setDate(item.date);
-    setName(item.name);
-    setCalories(item.calories ? String(item.calories) : "");
-    setTime(item.time || "");
+    setEditDate(item.date);
+    setEditName(item.name);
+    setEditCalories(item.calories ? String(item.calories) : "");
+    setEditTime(item.time || "");
   };
-  const cancelEdit = () => {
-    setEditingId(null);
-    setDate(todayStr()); setName(""); setCalories(""); setTime(nowTime());
+  const cancelEdit = () => setEditingId(null);
+  const saveEdit = () => {
+    if (!editName) return;
+    onUpdate(editingId, { date: editDate, time: editTime || null, name: editName, calories: editCalories ? Number(editCalories) : 0 });
+    cancelEdit();
   };
   const submit = () => {
     if (!name) return;
-    const payload = { date, time: time || null, name, calories: calories ? Number(calories) : 0 };
-    if (editingId) {
-      onUpdate(editingId, payload);
-      cancelEdit();
-    } else {
-      onAdd({ id: uid(), ...payload });
-      setName(""); setCalories(""); setTime(nowTime());
-    }
+    onAdd({ id: uid(), date, time: time || null, name, calories: calories ? Number(calories) : 0 });
+    setName(""); setCalories(""); setTime(nowTime());
   };
 
   return (
     <div>
       <SectionHeader title="食事" sub="食べたものを記録" color={CAT.meals.main} />
-      {editingId && (
-        <div className="flex items-center gap-2 mb-3 -mt-4">
-          <span className="text-xs font-medium" style={{ color: CAT.meals.main }}>記録を編集中</span>
-          <button onClick={cancelEdit} className="p-1 rounded-full" style={{ background: CAT.meals.soft }}>
-            <X size={11} color={CAT.meals.main} />
-          </button>
-        </div>
-      )}
       <div className="grid gap-3 mb-10" style={fieldGridStyle}>
         <Field label="日付" full>
           <DateField value={date} onChange={(e) => setDate(e.target.value)}
@@ -1052,11 +1098,26 @@ function MealsTab({ entries, onAdd, onRemove, onUpdate }) {
             className={inputCls} style={inputStyle} />
         </Field>
         <button onClick={submit} className="text-sm font-medium flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl" style={{ color: "#fff", background: CAT.meals.main, gridColumn: "1 / -1" }}>
-          <Plus size={15} /> {editingId ? "更新" : "記録"}
+          <Plus size={15} /> 記録
         </button>
       </div>
       <EntryList items={[...entries].reverse()} onRemove={onRemove} onEdit={startEdit} editingId={editingId} color={CAT.meals.main}
-        render={(e) => `${e.name}${e.calories ? ` ・ ${e.calories}kcal` : ""}`} />
+        render={(e) => `${e.name}${e.calories ? ` ・ ${e.calories}kcal` : ""}`}
+        renderEdit={() => (
+          <div>
+            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))" }}>
+              <DateField value={editDate} onChange={(e) => setEditDate(e.target.value)} wrapperStyle={{ gridColumn: "1 / -1" }}
+                className={quickInputCls} />
+              <input type="text" placeholder="内容" value={editName} onChange={(e) => setEditName(e.target.value)}
+                className={quickInputCls} style={{ ...quickInputStyle, gridColumn: "1 / -1" }} />
+              <input type="number" inputMode="numeric" placeholder="kcal" value={editCalories} onChange={(e) => setEditCalories(e.target.value)}
+                className={quickInputCls} style={quickInputStyle} />
+              <input type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)}
+                className={quickInputCls} style={quickInputStyle} />
+            </div>
+            <InlineEditActions onSave={saveEdit} onCancel={cancelEdit} color={CAT.meals.main} />
+          </div>
+        )} />
     </div>
   );
 }
@@ -1067,28 +1128,28 @@ function ExerciseTab({ entries, onAdd, onRemove, onUpdate }) {
   const [calories, setCalories] = useState("");
   const [date, setDate] = useState(todayStr());
   const [editingId, setEditingId] = useState(null);
+  const [editDate, setEditDate] = useState(todayStr());
+  const [editType, setEditType] = useState("");
+  const [editDuration, setEditDuration] = useState("");
+  const [editCalories, setEditCalories] = useState("");
 
   const startEdit = (item) => {
     setEditingId(item.id);
-    setDate(item.date);
-    setType(item.type);
-    setDuration(item.duration !== null && item.duration !== undefined ? String(item.duration) : "");
-    setCalories(item.calories ? String(item.calories) : "");
+    setEditDate(item.date);
+    setEditType(item.type);
+    setEditDuration(item.duration !== null && item.duration !== undefined ? String(item.duration) : "");
+    setEditCalories(item.calories ? String(item.calories) : "");
   };
-  const cancelEdit = () => {
-    setEditingId(null);
-    setDate(todayStr()); setType(""); setDuration(""); setCalories("");
+  const cancelEdit = () => setEditingId(null);
+  const saveEdit = () => {
+    if (!editType) return;
+    onUpdate(editingId, { date: editDate, type: editType, duration: editDuration ? Number(editDuration) : null, calories: editCalories ? Number(editCalories) : 0 });
+    cancelEdit();
   };
   const submit = () => {
     if (!type) return;
-    const payload = { date, type, duration: duration ? Number(duration) : null, calories: calories ? Number(calories) : 0 };
-    if (editingId) {
-      onUpdate(editingId, payload);
-      cancelEdit();
-    } else {
-      onAdd({ id: uid(), time: nowTime(), ...payload });
-      setType(""); setDuration(""); setCalories("");
-    }
+    onAdd({ id: uid(), time: nowTime(), date, type, duration: duration ? Number(duration) : null, calories: calories ? Number(calories) : 0 });
+    setType(""); setDuration(""); setCalories("");
   };
   const handleExtract = (result) => {
     if (result.type) setType(result.type);
@@ -1100,14 +1161,6 @@ function ExerciseTab({ entries, onAdd, onRemove, onUpdate }) {
   return (
     <div>
       <SectionHeader title="運動" sub="運動内容を記録" color={CAT.exercise.main} />
-      {editingId && (
-        <div className="flex items-center gap-2 mb-3 -mt-4">
-          <span className="text-xs font-medium" style={{ color: CAT.exercise.main }}>記録を編集中</span>
-          <button onClick={cancelEdit} className="p-1 rounded-full" style={{ background: CAT.exercise.soft }}>
-            <X size={11} color={CAT.exercise.main} />
-          </button>
-        </div>
-      )}
       <div className="grid gap-3 mb-10" style={fieldGridStyle}>
         <Field label="日付" full>
           <DateField value={date} onChange={(e) => setDate(e.target.value)}
@@ -1126,14 +1179,29 @@ function ExerciseTab({ entries, onAdd, onRemove, onUpdate }) {
             className={inputCls} style={inputStyle} />
         </Field>
         <button onClick={submit} className="text-sm font-medium flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl" style={{ color: "#fff", background: CAT.exercise.main, gridColumn: "1 / -1" }}>
-          <Plus size={15} /> {editingId ? "更新" : "記録"}
+          <Plus size={15} /> 記録
         </button>
       </div>
       <div className="-mt-7 mb-9">
         <ScreenshotButton color={CAT.exercise.main} extract={extractExercise} onExtract={handleExtract} />
       </div>
       <EntryList items={[...entries].reverse()} onRemove={onRemove} onEdit={startEdit} editingId={editingId} color={CAT.exercise.main}
-        render={(e) => `${e.type}${e.duration ? ` ・ ${e.duration}分` : ""}${e.calories ? ` ・ ${e.calories}kcal` : ""}`} />
+        render={(e) => `${e.type}${e.duration ? ` ・ ${e.duration}分` : ""}${e.calories ? ` ・ ${e.calories}kcal` : ""}`}
+        renderEdit={() => (
+          <div>
+            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))" }}>
+              <DateField value={editDate} onChange={(e) => setEditDate(e.target.value)} wrapperStyle={{ gridColumn: "1 / -1" }}
+                className={quickInputCls} />
+              <input type="text" placeholder="種目" value={editType} onChange={(e) => setEditType(e.target.value)}
+                className={quickInputCls} style={{ ...quickInputStyle, gridColumn: "1 / -1" }} />
+              <input type="number" inputMode="numeric" placeholder="分" value={editDuration} onChange={(e) => setEditDuration(e.target.value)}
+                className={quickInputCls} style={quickInputStyle} />
+              <input type="number" inputMode="numeric" placeholder="kcal" value={editCalories} onChange={(e) => setEditCalories(e.target.value)}
+                className={quickInputCls} style={quickInputStyle} />
+            </div>
+            <InlineEditActions onSave={saveEdit} onCancel={cancelEdit} color={CAT.exercise.main} />
+          </div>
+        )} />
     </div>
   );
 }
@@ -1142,26 +1210,24 @@ function StepsTab({ entries, onAdd, onAddMany, onRemove, onUpdate }) {
   const [steps, setSteps] = useState("");
   const [date, setDate] = useState(todayStr());
   const [editingId, setEditingId] = useState(null);
+  const [editDate, setEditDate] = useState(todayStr());
+  const [editSteps, setEditSteps] = useState("");
 
   const startEdit = (item) => {
     setEditingId(item.id);
-    setDate(item.date);
-    setSteps(String(item.steps));
+    setEditDate(item.date);
+    setEditSteps(String(item.steps));
   };
-  const cancelEdit = () => {
-    setEditingId(null);
-    setDate(todayStr()); setSteps("");
+  const cancelEdit = () => setEditingId(null);
+  const saveEdit = () => {
+    if (!editSteps) return;
+    onUpdate(editingId, { date: editDate, steps: Number(editSteps) });
+    cancelEdit();
   };
   const submit = () => {
     if (!steps) return;
-    const payload = { date, steps: Number(steps) };
-    if (editingId) {
-      onUpdate(editingId, payload);
-      cancelEdit();
-    } else {
-      onAdd({ id: uid(), time: nowTime(), ...payload });
-      setSteps("");
-    }
+    onAdd({ id: uid(), time: nowTime(), date, steps: Number(steps) });
+    setSteps("");
   };
   const handleExtract = (result) => {
     if (result.steps != null) setSteps(String(result.steps));
@@ -1176,14 +1242,6 @@ function StepsTab({ entries, onAdd, onAddMany, onRemove, onUpdate }) {
   return (
     <div>
       <SectionHeader title="歩数" sub="歩数を記録" color={CAT.steps.main} />
-      {editingId && (
-        <div className="flex items-center gap-2 mb-3 -mt-4">
-          <span className="text-xs font-medium" style={{ color: CAT.steps.main }}>記録を編集中</span>
-          <button onClick={cancelEdit} className="p-1 rounded-full" style={{ background: CAT.steps.soft }}>
-            <X size={11} color={CAT.steps.main} />
-          </button>
-        </div>
-      )}
       <div className="grid gap-3 mb-10" style={fieldGridStyle}>
         <Field label="日付" full>
           <DateField value={date} onChange={(e) => setDate(e.target.value)}
@@ -1194,7 +1252,7 @@ function StepsTab({ entries, onAdd, onAddMany, onRemove, onUpdate }) {
             className={inputCls} style={inputStyle} />
         </Field>
         <button onClick={submit} className="text-sm font-medium flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl" style={{ color: "#fff", background: CAT.steps.main, gridColumn: "1 / -1" }}>
-          <Plus size={15} /> {editingId ? "更新" : "記録"}
+          <Plus size={15} /> 記録
         </button>
       </div>
       <div className="-mt-7 mb-9 space-y-2">
@@ -1220,37 +1278,67 @@ function StepsTab({ entries, onAdd, onAddMany, onRemove, onUpdate }) {
       )}
 
       <EntryList items={[...entries].reverse()} onRemove={onRemove} onEdit={startEdit} editingId={editingId} color={CAT.steps.main}
-        render={(e) => `${e.steps.toLocaleString()}歩`} />
+        render={(e) => `${e.steps.toLocaleString()}歩`}
+        renderEdit={() => (
+          <div>
+            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))" }}>
+              <DateField value={editDate} onChange={(e) => setEditDate(e.target.value)} wrapperStyle={{ gridColumn: "1 / -1" }}
+                className={quickInputCls} />
+              <input type="number" inputMode="numeric" placeholder="歩数" value={editSteps} onChange={(e) => setEditSteps(e.target.value)}
+                className={quickInputCls} style={quickInputStyle} />
+            </div>
+            <InlineEditActions onSave={saveEdit} onCancel={cancelEdit} color={CAT.steps.main} />
+          </div>
+        )} />
     </div>
   );
 }
 
-function EntryList({ items, onRemove, onEdit, editingId, render, color }) {
+function EntryList({ items, onRemove, onEdit, editingId, render, renderEdit, color }) {
   if (items.length === 0) {
     return <p className="text-sm" style={{ color: C.soft }}>まだ記録がありません。</p>;
   }
   return (
     <div className="space-y-1.5">
       {items.map((item) => (
-        <div key={item.id} className="flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl"
-          style={{ background: item.id === editingId ? C.faint : C.line }}>
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex flex-col items-start shrink-0" style={{ width: 44 }}>
-              <span className="text-[12px] font-bold" style={{ color }}>{fmtDate(item.date)}</span>
-              {item.time && <span className="text-[10px] font-medium" style={{ color: C.soft }}>{item.time}</span>}
+        item.id === editingId && renderEdit ? (
+          <div key={item.id} className="py-2.5 px-3 rounded-xl" style={{ background: C.faint }}>
+            {renderEdit(item)}
+          </div>
+        ) : (
+          <div key={item.id} className="flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl"
+            style={{ background: item.id === editingId ? C.faint : C.line }}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex flex-col items-start shrink-0" style={{ width: 44 }}>
+                <span className="text-[12px] font-bold" style={{ color }}>{fmtDate(item.date)}</span>
+                {item.time && <span className="text-[10px] font-medium" style={{ color: C.soft }}>{item.time}</span>}
+              </div>
+              <span className="text-[13px] font-semibold truncate" style={{ color: C.ink }}>{render(item)}</span>
             </div>
-            <span className="text-[13px] font-semibold truncate" style={{ color: C.ink }}>{render(item)}</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={() => onEdit(item)} className="p-1.5 -m-1.5 hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
+                <Pencil size={14} color={C.soft} />
+              </button>
+              <button onClick={() => onRemove(item.id)} className="p-1.5 -m-1.5 hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
+                <Trash2 size={14} color={C.soft} />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button onClick={() => onEdit(item)} className="p-1.5 -m-1.5 hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
-              <Pencil size={14} color={C.soft} />
-            </button>
-            <button onClick={() => onRemove(item.id)} className="p-1.5 -m-1.5 hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
-              <Trash2 size={14} color={C.soft} />
-            </button>
-          </div>
-        </div>
+        )
       ))}
+    </div>
+  );
+}
+
+function InlineEditActions({ onSave, onCancel, color }) {
+  return (
+    <div className="flex gap-2 mt-2">
+      <button type="button" onClick={onSave} className="text-[12px] font-medium py-1.5 px-3 rounded-lg" style={{ background: color, color: "#fff" }}>
+        保存
+      </button>
+      <button type="button" onClick={onCancel} className="text-[12px] font-medium py-1.5 px-3 rounded-lg" style={{ background: "#fff", color }}>
+        キャンセル
+      </button>
     </div>
   );
 }
