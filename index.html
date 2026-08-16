@@ -201,11 +201,32 @@ function pickLargestNumber(text, min, max) {
   return nums.length ? Math.max(...nums) : null;
 }
 
+function toISODate(y, mo, d) {
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+function inferYear(month, day) {
+  const today = new Date();
+  let year = today.getFullYear();
+  const candidate = new Date(year, month - 1, day);
+  if (candidate.getTime() > today.getTime()) year -= 1;
+  return toISODate(year, month, day);
+}
+
+function parseDateFromText(text) {
+  let m = text.match(/(20\d{2})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+  if (m) return toISODate(Number(m[1]), Number(m[2]), Number(m[3]));
+  m = text.match(/(\d{1,2})月(\d{1,2})日/);
+  if (m) return inferYear(Number(m[1]), Number(m[2]));
+  return null;
+}
+
 async function extractSteps(file) {
   const text = await ocrText(file);
   const steps = pickNumber(text, /([\d,]{3,7})\s*歩/) ?? pickLargestNumber(text, 100, 100000);
   if (steps == null) throw new Error("歩数を読み取れませんでした。手入力してください。");
-  return { steps };
+  return { steps, date: parseDateFromText(text) };
 }
 
 async function extractExercise(file) {
@@ -213,7 +234,7 @@ async function extractExercise(file) {
   const duration = pickNumber(text, /(\d{1,4})\s*分/);
   const calories = pickNumber(text, /(\d{1,5})\s*kcal/i);
   if (duration == null && calories == null) throw new Error("時間・カロリーを読み取れませんでした。手入力してください。");
-  return { duration, calories };
+  return { duration, calories, date: parseDateFromText(text) };
 }
 function DateField({ value, onChange, className, wrapperStyle }) {
   const inputRef = useRef(null);
