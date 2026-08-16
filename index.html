@@ -313,24 +313,14 @@ async function bulkExtractWeights(file) {
 }
 
 function DateField({ value, onChange, className, wrapperStyle }) {
-  const inputRef = useRef(null);
-  const openPicker = () => {
-    const el = inputRef.current;
-    if (!el) return;
-    if (el.showPicker) {
-      try { el.showPicker(); return; } catch (e) {}
-    }
-    el.focus();
-  };
   return (
-    <button type="button" onClick={openPicker}
-      className={className + " relative flex items-center justify-between"}
+    <div className={className + " relative flex items-center justify-between"}
       style={{ textAlign: "left", fontSize: 16, color: C.ink, ...wrapperStyle }}>
       <span>{fmtDateFull(value)}</span>
       <CalendarIcon size={16} color={C.soft} strokeWidth={2} />
-      <input ref={inputRef} type="date" value={value} max={todayStr()} onChange={onChange} tabIndex={-1} aria-hidden="true"
-        style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none", border: 0, padding: 0 }} />
-    </button>
+      <input type="date" value={value} max={todayStr()} onChange={onChange}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, border: 0, padding: 0, margin: 0, cursor: "pointer" }} />
+    </div>
   );
 }
 
