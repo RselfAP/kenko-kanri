@@ -513,19 +513,21 @@ function HealthTracker() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [saveError, setSaveError] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setData((prev) => ({ ...prev, ...JSON.parse(raw) }));
     } catch (e) {
-      // no existing data yet
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
   }, []);
 
   const persist = (next) => {
+    if (loadError) return;
     setData(next);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
@@ -588,6 +590,11 @@ function HealthTracker() {
         </div>
 
         <div className="px-6 py-8 md:px-8">
+          {loadError && (
+            <p className="text-xs mb-4 p-3 rounded-xl" style={{ background: CAT.exercise.soft, color: CAT.exercise.main }}>
+              保存データの読み込みに失敗しました。データが破損している可能性があるため、上書きを避けるべく新しい記録の保存を停止しています。ブラウザを変えずに再読み込みしてみるか、改善しない場合はこのままにしてご相談ください。
+            </p>
+          )}
           {activeTab === "overview" && <Overview data={data} onAddWeight={addWeight} onAddMeal={addMeal} onAddExercise={addExercise} onAddSteps={addSteps} />}
           {activeTab === "weight" && <WeightTab entries={data.weights} onAdd={addWeight} onAddMany={addManyWeights} onRemove={(id) => removeItem("weights", id)} onUpdate={(id, patch) => updateItem("weights", id, patch)} profile={data.profile} onProfileChange={setProfile} />}
           {activeTab === "meals" && <MealsTab entries={data.meals} onAdd={addMeal} onRemove={(id) => removeItem("meals", id)} onUpdate={(id, patch) => updateItem("meals", id, patch)} />}
@@ -861,8 +868,8 @@ function QuickAddExercise({ onAdd, chartData, weightKg }) {
   useEffect(() => {
     if (!caloriesAuto) return;
     const estimate = estimateExerciseKcal(type, duration, null, weightKg);
-    if (estimate != null) setCalories(String(estimate));
-  }, [type, duration, caloriesAuto]);
+    setCalories(estimate != null ? String(estimate) : "");
+  }, [type, duration, caloriesAuto, weightKg]);
 
   const submit = () => {
     if (!type) return;
@@ -995,13 +1002,13 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
         <div className="flex items-center gap-1.5">
           <input type="number" inputMode="decimal" step="0.1" placeholder="身長" value={profile.height}
             onChange={(e) => onProfileChange({ height: e.target.value })}
-            className="border-0 bg-white rounded-lg px-2 py-1.5 outline-none" style={{ fontSize: 14, width: 64 }} />
+            className="border-0 bg-white rounded-lg px-2 py-1.5 outline-none" style={{ fontSize: 16, width: 68 }} />
           <span className="text-[11px]" style={{ color: C.soft }}>cm</span>
         </div>
         <div className="flex items-center gap-1.5">
           <input type="number" inputMode="numeric" placeholder="年齢" value={profile.age}
             onChange={(e) => onProfileChange({ age: e.target.value })}
-            className="border-0 bg-white rounded-lg px-2 py-1.5 outline-none" style={{ fontSize: 14, width: 56 }} />
+            className="border-0 bg-white rounded-lg px-2 py-1.5 outline-none" style={{ fontSize: 16, width: 60 }} />
           <span className="text-[11px]" style={{ color: C.soft }}>歳</span>
         </div>
         <div className="flex items-center gap-1 rounded-lg bg-white p-0.5">
@@ -1249,8 +1256,8 @@ function ExerciseTab({ entries, onAdd, onRemove, onUpdate, weightKg }) {
   useEffect(() => {
     if (!caloriesAuto) return;
     const estimate = estimateExerciseKcal(type, duration, reps, weightKg);
-    if (estimate != null) setCalories(String(estimate));
-  }, [type, duration, reps, caloriesAuto]);
+    setCalories(estimate != null ? String(estimate) : "");
+  }, [type, duration, reps, caloriesAuto, weightKg]);
 
   const startEdit = (item) => {
     setEditingId(item.id);
@@ -1457,10 +1464,10 @@ function EntryList({ items, onRemove, onEdit, editingId, render, renderEdit, col
               <span className="text-[13px] font-semibold truncate" style={{ color: C.ink }}>{render(item)}</span>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <button onClick={() => onEdit(item)} className="p-1.5 -m-1.5 hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
+              <button onClick={() => onEdit(item)} aria-label="編集" className="p-[15px] hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
                 <Pencil size={14} color={C.soft} />
               </button>
-              <button onClick={() => onRemove(item.id)} className="p-1.5 -m-1.5 hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
+              <button onClick={() => onRemove(item.id)} aria-label="削除" className="p-[15px] hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
                 <Trash2 size={14} color={C.soft} />
               </button>
             </div>
