@@ -1461,7 +1461,7 @@ function EntryList({ items, onRemove, onEdit, editingId, render, renderEdit, col
                 <span className="text-[12px] font-bold" style={{ color }}>{fmtDate(item.date)}</span>
                 {item.time && <span className="text-[10px] font-medium" style={{ color: C.soft }}>{item.time}</span>}
               </div>
-              <span className="text-[13px] font-semibold truncate" style={{ color: C.ink }}>{render(item)}</span>
+              <span className="text-[13px] font-semibold" style={{ color: C.ink }}>{render(item)}</span>
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <button onClick={() => onEdit(item)} aria-label="編集" className="p-[15px] hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
