@@ -1454,23 +1454,23 @@ function EntryList({ items, onRemove, onEdit, editingId, render, renderEdit, col
             {renderEdit(item)}
           </div>
         ) : (
-          <div key={item.id} className="flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl"
+          <div key={item.id} className="py-2.5 px-3 rounded-xl"
             style={{ background: item.id === editingId ? C.faint : C.line }}>
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="flex flex-col items-start shrink-0" style={{ width: 44 }}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-baseline gap-1.5">
                 <span className="text-[12px] font-bold" style={{ color }}>{fmtDate(item.date)}</span>
                 {item.time && <span className="text-[10px] font-medium" style={{ color: C.soft }}>{item.time}</span>}
               </div>
-              <span className="text-[13px] font-semibold" style={{ color: C.ink }}>{render(item)}</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => onEdit(item)} aria-label="編集" className="p-[15px] hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
+                  <Pencil size={14} color={C.soft} />
+                </button>
+                <button onClick={() => onRemove(item.id)} aria-label="削除" className="p-[15px] hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
+                  <Trash2 size={14} color={C.soft} />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button onClick={() => onEdit(item)} aria-label="編集" className="p-[15px] hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
-                <Pencil size={14} color={C.soft} />
-              </button>
-              <button onClick={() => onRemove(item.id)} aria-label="削除" className="p-[15px] hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
-                <Trash2 size={14} color={C.soft} />
-              </button>
-            </div>
+            <div className="text-[13px] font-semibold mt-0.5" style={{ color: C.ink }}>{render(item)}</div>
           </div>
         )
       ))}
