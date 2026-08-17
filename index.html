@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0C0C10" />
 <title>健康管理</title>
+<style>html, body { background: #0C0C10; }</style>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/prop-types@15/prop-types.min.js"></script>
@@ -114,19 +116,24 @@ const CameraIcon = (props) => (
 );
 
 const C = {
-  bg: "#FFFDF9",
-  ink: "#1F2024",
-  soft: "#8F8C97",
-  faint: "#ECE9E4",
-  line: "#F0EDE7",
+  bg: "#0C0C10",
+  card: "#1A1A20",
+  ink: "#F5F4F7",
+  soft: "#9B98A5",
+  faint: "#232329",
+  good: "#3DDC84",
+  goodSoft: "rgba(61,220,132,0.14)",
+  danger: "#FF5A6E",
+  dangerSoft: "rgba(255,90,110,0.14)",
+  shadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 14px rgba(0,0,0,0.35)",
 };
 
 const CAT = {
-  overview: { main: "#1F2024", soft: "#F1EFEA" },
-  weight: { main: "#0EA394", soft: "#DFF5F1" },
-  meals: { main: "#FF8A3D", soft: "#FFEADB" },
-  exercise: { main: "#FF4D8D", soft: "#FFE1EC" },
-  steps: { main: "#5B7FFF", soft: "#E4E9FF" },
+  overview: { main: "#9C8CFF", soft: "rgba(156,140,255,0.14)" },
+  weight: { main: "#2DD4BF", soft: "rgba(45,212,191,0.14)" },
+  meals: { main: "#FFA23C", soft: "rgba(255,162,60,0.14)" },
+  exercise: { main: "#FF4D8D", soft: "rgba(255,77,141,0.14)" },
+  steps: { main: "#6C8CFF", soft: "rgba(108,140,255,0.14)" },
 };
 
 const TABS = [
@@ -416,12 +423,12 @@ function ScreenshotButton({ color, extract, onExtract }) {
       <button type="button" onClick={() => fileRef.current && fileRef.current.click()}
         disabled={status === "loading"}
         className="text-[11px] font-medium flex items-center gap-1 py-1.5 px-2.5 rounded-lg"
-        style={{ color, background: "#fff" }}>
+        style={{ color, background: C.card }}>
         <CameraIcon size={12} color={color} strokeWidth={2.5} />
         {status === "loading" ? "読み取り中…" : "スクショから読み取る"}
       </button>
       <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
-      {status === "error" && <p className="text-[10px] mt-1" style={{ color: "#FF4D8D" }}>{errorMsg}</p>}
+      {status === "error" && <p className="text-[10px] mt-1" style={{ color: C.danger }}>{errorMsg}</p>}
     </div>
   );
 }
@@ -470,12 +477,12 @@ function BulkImportButton({ color, bg, parse, renderRow, onImport }) {
   if (phase === "review") {
     const checkedCount = candidates.filter((c) => c.checked).length;
     return (
-      <div className="mt-2 p-3 rounded-xl" style={{ background: bg }}>
+      <div className="mt-2 p-3 rounded-xl" style={{ background: bg, boxShadow: C.shadow }}>
         <p className="text-[11px] font-bold mb-2" style={{ color }}>{candidates.length}件見つかりました。内容を確認してください</p>
         <div className="space-y-1 mb-3" style={{ maxHeight: 220, overflowY: "auto" }}>
           {candidates.map((c, i) => (
-            <label key={i} className="flex items-center gap-2 text-[12px] py-1.5 px-2 rounded-lg bg-white">
-              <input type="checkbox" checked={c.checked} onChange={() => toggle(i)} />
+            <label key={i} className="flex items-center gap-2 text-[12px] py-1.5 px-2 rounded-lg" style={{ background: C.card }}>
+              <input type="checkbox" checked={c.checked} onChange={() => toggle(i)} style={{ accentColor: color }} />
               <span style={{ color: C.ink }}>{renderRow(c)}</span>
             </label>
           ))}
@@ -485,7 +492,7 @@ function BulkImportButton({ color, bg, parse, renderRow, onImport }) {
             className="text-[11px] font-medium py-1.5 px-3 rounded-lg" style={{ background: color, color: "#fff" }}>
             {checkedCount}件を記録
           </button>
-          <button type="button" onClick={cancel} className="text-[11px] font-medium py-1.5 px-3 rounded-lg" style={{ background: "#fff", color }}>
+          <button type="button" onClick={cancel} className="text-[11px] font-medium py-1.5 px-3 rounded-lg" style={{ background: C.card, color }}>
             キャンセル
           </button>
         </div>
@@ -498,12 +505,12 @@ function BulkImportButton({ color, bg, parse, renderRow, onImport }) {
       <button type="button" onClick={() => fileRef.current && fileRef.current.click()}
         disabled={phase === "loading"}
         className="text-[11px] font-medium flex items-center gap-1 py-1.5 px-2.5 rounded-lg"
-        style={{ color, background: "#fff" }}>
+        style={{ color, background: C.card }}>
         <CameraIcon size={12} color={color} strokeWidth={2.5} />
         {phase === "loading" ? "読み取り中…" : "スクショから一括読み込み"}
       </button>
       <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
-      {errorMsg && <p className="text-[10px] mt-1" style={{ color: "#FF4D8D" }}>{errorMsg}</p>}
+      {errorMsg && <p className="text-[10px] mt-1" style={{ color: C.danger }}>{errorMsg}</p>}
     </div>
   );
 }
@@ -560,12 +567,19 @@ function HealthTracker() {
   }
 
   return (
-    <div style={{ background: C.bg, color: C.ink, fontFamily: "'Zen Kaku Gothic New', 'Hiragino Sans', sans-serif" }}>
+    <div style={{ background: C.bg, color: C.ink, fontFamily: "'Inter', 'Zen Kaku Gothic New', 'Hiragino Sans', sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
+        body { background: ${C.bg}; }
         .htj-tab { transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease; }
         .htj-tab:active { transform: scale(0.96); }
-        input::placeholder { color: #C7C3D9; }
+        input::placeholder { color: #5C5A64; }
+        input, textarea { color-scheme: dark; }
+        input:focus, textarea:focus { outline: none; box-shadow: 0 0 0 2px rgba(255,255,255,0.3); }
+        input[type="date"]:focus { box-shadow: none; }
+        button { -webkit-tap-highlight-color: transparent; transition: transform 0.1s ease, opacity 0.15s ease; }
+        button:active { transform: scale(0.97); }
+        ::selection { background: rgba(156,140,255,0.35); }
       `}</style>
 
       <div className="max-w-2xl mx-auto min-h-[560px]">
@@ -580,7 +594,11 @@ function HealthTracker() {
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
                 className="htj-tab flex-1 min-w-[64px] flex flex-col items-center gap-1 py-2.5 rounded-2xl"
-                style={{ color: active ? "#fff" : C.soft, background: active ? cat.main : "transparent" }}
+                style={{
+                  color: active ? "#fff" : C.soft,
+                  background: active ? cat.main : "transparent",
+                  boxShadow: active ? `0 4px 10px -2px ${cat.main}66` : "none",
+                }}
               >
                 <Icon size={17} strokeWidth={2} />
                 <span className="text-[11px] font-medium tracking-wide">{t.label}</span>
@@ -591,7 +609,7 @@ function HealthTracker() {
 
         <div className="px-6 py-8 md:px-8">
           {loadError && (
-            <p className="text-xs mb-4 p-3 rounded-xl" style={{ background: CAT.exercise.soft, color: CAT.exercise.main }}>
+            <p className="text-xs mb-4 p-3 rounded-xl" style={{ background: C.dangerSoft, color: C.danger }}>
               保存データの読み込みに失敗しました。データが破損している可能性があるため、上書きを避けるべく新しい記録の保存を停止しています。ブラウザを変えずに再読み込みしてみるか、改善しない場合はこのままにしてご相談ください。
             </p>
           )}
@@ -600,7 +618,7 @@ function HealthTracker() {
           {activeTab === "meals" && <MealsTab entries={data.meals} onAdd={addMeal} onRemove={(id) => removeItem("meals", id)} onUpdate={(id, patch) => updateItem("meals", id, patch)} />}
           {activeTab === "exercise" && <ExerciseTab entries={data.exercises} onAdd={addExercise} onRemove={(id) => removeItem("exercises", id)} onUpdate={(id, patch) => updateItem("exercises", id, patch)} weightKg={data.weights.length ? data.weights[data.weights.length - 1].weight : null} />}
           {activeTab === "steps" && <StepsTab entries={data.steps} onAdd={addSteps} onAddMany={addManySteps} onRemove={(id) => removeItem("steps", id)} onUpdate={(id, patch) => updateItem("steps", id, patch)} weightKg={data.weights.length ? data.weights[data.weights.length - 1].weight : null} />}
-          {saveError && <p className="text-xs mt-4" style={{ color: C.soft }}>保存に失敗しました。もう一度お試しください。</p>}
+          {saveError && <p className="text-xs mt-4 p-3 rounded-xl" style={{ background: C.dangerSoft, color: C.danger }}>保存に失敗しました。もう一度お試しください。</p>}
         </div>
       </div>
     </div>
@@ -610,17 +628,17 @@ function HealthTracker() {
 function SectionHeader({ title, sub, color }) {
   return (
     <div className="mb-7 flex items-center gap-2.5">
-      {color && <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />}
+      {color && <span className="w-2.5 h-2.5 rounded-full" style={{ background: color, boxShadow: `0 0 10px ${color}99` }} />}
       <div>
-        <h2 className="text-base font-bold tracking-wide">{title}</h2>
+        <h2 className="text-lg font-extrabold tracking-tight">{title}</h2>
         {sub && <p className="text-xs mt-0.5" style={{ color: C.soft }}>{sub}</p>}
       </div>
     </div>
   );
 }
 
-const inputCls = "border-2 bg-white rounded-xl px-3 py-2.5 outline-none w-full";
-const inputStyle = { borderColor: C.faint, fontSize: 16 };
+const inputCls = "border rounded-xl px-3 py-2.5 outline-none w-full";
+const inputStyle = { borderColor: "rgba(255,255,255,0.08)", fontSize: 16, background: C.card, color: C.ink };
 
 function Field({ label, children, full }) {
   return (
@@ -681,23 +699,37 @@ function Overview({ data, onAddWeight, onAddMeal, onAddExercise, onAddSteps }) {
     <div>
       <SectionHeader title="今日" sub={new Date().toLocaleDateString("ja-JP", { month: "long", day: "numeric", weekday: "short" })} />
 
-      <div className="grid gap-3 mb-9" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))" }}>
+      <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))" }}>
         <Stat label="体重" value={latestWeight ? latestWeight.weight : "—"} unit="kg" extra={weightDelta ? `${weightDelta > 0 ? "+" : ""}${weightDelta}` : null} color={CAT.weight.main} bg={CAT.weight.soft} />
         <Stat label="歩数" value={todaysSteps ? todaysSteps.steps.toLocaleString() : "—"} unit="歩" color={CAT.steps.main} bg={CAT.steps.soft} />
         <Stat label="摂取" value={todaysMeals.length ? kcalIn : "—"} unit="kcal" color={CAT.meals.main} bg={CAT.meals.soft} />
         <Stat label="消費" value={todaysExercise.length ? kcalOut : "—"} unit="kcal" color={CAT.exercise.main} bg={CAT.exercise.soft} />
-        {bmi != null && <Stat label="BMI" value={bmi.toFixed(1)} unit="" extra={bmiLabel(bmi)} color={CAT.weight.main} bg={CAT.weight.soft} />}
-        {bmr != null && <Stat label="基礎代謝" value={Math.round(bmr)} unit="kcal" color={CAT.weight.main} bg={CAT.weight.soft} />}
       </div>
 
+      {(bmi != null || bmr != null) && (
+        <div className="flex flex-wrap gap-x-5 gap-y-1 mb-6 px-1">
+          {bmi != null && (
+            <p className="text-[12px]" style={{ color: C.soft }}>
+              BMI <span className="text-[13px] font-bold" style={{ color: C.ink }}>{bmi.toFixed(1)}</span>
+              {" "}<span style={{ color: CAT.weight.main }}>{bmiLabel(bmi)}</span>
+            </p>
+          )}
+          {bmr != null && (
+            <p className="text-[12px]" style={{ color: C.soft }}>
+              基礎代謝 <span className="text-[13px] font-bold" style={{ color: C.ink }}>{Math.round(bmr)}</span> kcal
+            </p>
+          )}
+        </div>
+      )}
+
       {totalBurn != null && (
-        <div className="mb-9 p-4 rounded-2xl" style={{ background: balance > 0 ? CAT.exercise.soft : CAT.weight.soft }}>
+        <div className="mb-9 p-4 rounded-2xl" style={{ background: C.card, boxShadow: C.shadow, borderLeft: `3px solid ${balance > 0 ? C.danger : C.good}` }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-bold" style={{ color: balance > 0 ? CAT.exercise.main : CAT.weight.main }}>
+            <p className="text-xs font-bold" style={{ color: balance > 0 ? C.danger : C.good }}>
               今日の収支{balance > 0 ? "・オーバー気味" : "・順調"}
             </p>
-            <p className="text-sm font-bold" style={{ color: balance > 0 ? CAT.exercise.main : CAT.weight.main }}>
-              {balance > 0 ? "+" : ""}{Math.round(balance)} kcal
+            <p className="text-2xl font-black tracking-tight" style={{ color: balance > 0 ? C.danger : C.good, fontVariantNumeric: "tabular-nums" }}>
+              {balance > 0 ? "+" : ""}{Math.round(balance)} <span className="text-xs font-normal">kcal</span>
             </p>
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]" style={{ color: C.soft }}>
@@ -725,7 +757,7 @@ function Overview({ data, onAddWeight, onAddMeal, onAddExercise, onAddSteps }) {
 
 function QuickAddCard({ color, bg, icon: Icon, label, children }) {
   return (
-    <div className="rounded-2xl p-3.5" style={{ background: bg }}>
+    <div className="rounded-2xl p-3.5" style={{ background: bg, boxShadow: C.shadow }}>
       <div className="flex items-center gap-1.5 mb-2.5">
         <Icon size={14} color={color} strokeWidth={2.5} />
         <span className="text-xs font-bold" style={{ color }}>{label}</span>
@@ -735,8 +767,8 @@ function QuickAddCard({ color, bg, icon: Icon, label, children }) {
   );
 }
 
-const quickInputCls = "border-0 bg-white rounded-lg px-2.5 py-2 outline-none w-full";
-const quickInputStyle = { fontSize: 16 };
+const quickInputCls = "border-0 rounded-lg px-2.5 py-2 outline-none w-full";
+const quickInputStyle = { fontSize: 16, background: C.card, color: C.ink };
 
 function QuickAddWeight({ onAdd, chartData }) {
   const [weight, setWeight] = useState("");
@@ -756,18 +788,18 @@ function QuickAddWeight({ onAdd, chartData }) {
           className={quickInputCls} style={quickInputStyle} />
         <input type="number" inputMode="decimal" step="0.1" placeholder="体脂肪%" value={bodyFat} onChange={(e) => setBodyFat(e.target.value)}
           className={quickInputCls} style={quickInputStyle} />
-        <button onClick={submit} className="p-2.5 rounded-lg flex items-center justify-center" style={{ background: CAT.weight.main, gridColumn: "1 / -1" }}>
-          <Plus size={16} color="#fff" />
+        <button onClick={submit} className="text-sm font-medium py-3 rounded-xl flex items-center justify-center gap-1.5" style={{ color: "#fff", background: CAT.weight.main, gridColumn: "1 / -1" }}>
+          <Plus size={15} /> 記録
         </button>
       </div>
       {chartData.length > 1 && (
         <div className="mt-3 -mx-1">
           <ResponsiveContainer width="100%" height={140}>
             <LineChart data={chartData}>
-              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="2 2" vertical={false} />
               <XAxis dataKey="date" tick={chartAxis} axisLine={false} tickLine={false} />
               <YAxis tick={chartAxis} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={30} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", background: C.card, boxShadow: "0 4px 14px rgba(0,0,0,0.4)" }} labelStyle={{ color: C.soft }} itemStyle={{ color: C.ink }} />
               <Line type="monotone" dataKey="体重" stroke={CAT.weight.main} strokeWidth={2.5} dot={{ r: 3, fill: CAT.weight.main }} />
             </LineChart>
           </ResponsiveContainer>
@@ -796,8 +828,8 @@ function QuickAddSteps({ onAdd, chartData }) {
           className={quickInputCls} />
         <input type="number" inputMode="numeric" placeholder="歩数" value={steps} onChange={(e) => setSteps(e.target.value)}
           className={quickInputCls} style={quickInputStyle} />
-        <button onClick={submit} className="p-2.5 rounded-lg flex items-center justify-center" style={{ background: CAT.steps.main }}>
-          <Plus size={16} color="#fff" />
+        <button onClick={submit} className="text-sm font-medium py-3 rounded-xl flex items-center justify-center gap-1.5" style={{ color: "#fff", background: CAT.steps.main }}>
+          <Plus size={15} /> 記録
         </button>
       </div>
       <ScreenshotButton color={CAT.steps.main} extract={extractSteps} onExtract={handleExtract} />
@@ -805,10 +837,10 @@ function QuickAddSteps({ onAdd, chartData }) {
         <div className="mt-3 -mx-1">
           <ResponsiveContainer width="100%" height={140}>
             <BarChart data={chartData}>
-              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="2 2" vertical={false} />
               <XAxis dataKey="date" tick={chartAxis} axisLine={false} tickLine={false} />
               <YAxis tick={chartAxis} axisLine={false} tickLine={false} width={34} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", background: C.card, boxShadow: "0 4px 14px rgba(0,0,0,0.4)" }} labelStyle={{ color: C.soft }} itemStyle={{ color: C.ink }} />
               <Bar dataKey="歩数" fill={CAT.steps.main} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -836,18 +868,18 @@ function QuickAddMeal({ onAdd, chartData }) {
           className={quickInputCls} style={{ ...quickInputStyle, gridColumn: "1 / -1" }} />
         <input type="number" inputMode="numeric" placeholder="kcal" value={calories} onChange={(e) => setCalories(e.target.value)}
           className={quickInputCls} style={quickInputStyle} />
-        <button onClick={submit} className="p-2.5 rounded-lg flex items-center justify-center" style={{ background: CAT.meals.main }}>
-          <Plus size={16} color="#fff" />
+        <button onClick={submit} className="text-sm font-medium py-3 rounded-xl flex items-center justify-center gap-1.5" style={{ color: "#fff", background: CAT.meals.main }}>
+          <Plus size={15} /> 記録
         </button>
       </div>
       {chartData.some((d) => d.摂取 > 0 || d.消費 > 0) && (
         <div className="mt-3 -mx-1">
           <ResponsiveContainer width="100%" height={140}>
             <ScatterChart>
-              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="2 2" vertical={false} />
               <XAxis dataKey="date" type="category" allowDuplicatedCategory={false} tick={chartAxis} axisLine={false} tickLine={false} />
               <YAxis type="number" tick={chartAxis} axisLine={false} tickLine={false} width={30} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", background: C.card, boxShadow: "0 4px 14px rgba(0,0,0,0.4)" }} labelStyle={{ color: C.soft }} itemStyle={{ color: C.ink }} />
               <Scatter name="摂取" data={chartData} dataKey="摂取" fill={CAT.meals.main} />
               <Scatter name="消費" data={chartData} dataKey="消費" fill={CAT.exercise.main} />
             </ScatterChart>
@@ -894,8 +926,8 @@ function QuickAddExercise({ onAdd, chartData, weightKg }) {
         <input type="number" inputMode="numeric" placeholder="kcal" value={calories}
           onChange={(e) => { setCalories(e.target.value); setCaloriesAuto(false); }}
           className={quickInputCls} style={quickInputStyle} />
-        <button onClick={submit} className="p-2.5 rounded-lg flex items-center justify-center" style={{ background: CAT.exercise.main, gridColumn: "1 / -1" }}>
-          <Plus size={16} color="#fff" />
+        <button onClick={submit} className="text-sm font-medium py-3 rounded-xl flex items-center justify-center gap-1.5" style={{ color: "#fff", background: CAT.exercise.main, gridColumn: "1 / -1" }}>
+          <Plus size={15} /> 記録
         </button>
       </div>
       {caloriesAuto && calories && <p className="text-[10px] -mt-1 mb-1" style={{ color: C.soft }}>種目・時間からの自動推定です</p>}
@@ -904,10 +936,10 @@ function QuickAddExercise({ onAdd, chartData, weightKg }) {
         <div className="mt-3 -mx-1">
           <ResponsiveContainer width="100%" height={140}>
             <ScatterChart>
-              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="2 2" vertical={false} />
               <XAxis dataKey="date" type="category" allowDuplicatedCategory={false} tick={chartAxis} axisLine={false} tickLine={false} />
               <YAxis type="number" tick={chartAxis} axisLine={false} tickLine={false} width={30} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", background: C.card, boxShadow: "0 4px 14px rgba(0,0,0,0.4)" }} labelStyle={{ color: C.soft }} itemStyle={{ color: C.ink }} />
               <Scatter name="摂取" data={chartData} dataKey="摂取" fill={CAT.meals.main} />
               <Scatter name="消費" data={chartData} dataKey="消費" fill={CAT.exercise.main} />
             </ScatterChart>
@@ -928,9 +960,9 @@ function Num({ children, width }) {
 
 function Stat({ label, value, unit, extra, color, bg }) {
   return (
-    <div className="rounded-2xl p-3" style={{ background: bg }}>
-      <p className="text-[11px] font-medium" style={{ color }}>{label}</p>
-      <p className="text-xl font-bold mt-1" style={{ color: C.ink }}>
+    <div className="rounded-2xl p-3.5" style={{ background: bg, boxShadow: C.shadow }}>
+      <p className="text-[11px] font-bold tracking-wide" style={{ color }}>{label}</p>
+      <p className="text-[28px] font-black mt-1 tracking-tight" style={{ color: C.ink, fontVariantNumeric: "tabular-nums", lineHeight: 1.15 }}>
         {value} <span className="text-[10px] font-normal" style={{ color: C.soft }}>{value !== "—" ? unit : ""}</span>
       </p>
       {extra && <p className="text-[10px] mt-0.5 font-medium" style={{ color }}>{extra}</p>}
@@ -997,21 +1029,21 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
     <div>
       <SectionHeader title="体重" sub="体重を記録" color={CAT.weight.main} />
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6 p-3 rounded-xl" style={{ background: CAT.weight.soft }}>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6 p-3 rounded-xl" style={{ background: CAT.weight.soft, boxShadow: C.shadow }}>
         <span className="text-[11px] font-bold shrink-0" style={{ color: CAT.weight.main }}>プロフィール</span>
         <div className="flex items-center gap-1.5">
           <input type="number" inputMode="decimal" step="0.1" placeholder="身長" value={profile.height}
             onChange={(e) => onProfileChange({ height: e.target.value })}
-            className="border-0 bg-white rounded-lg px-2 py-1.5 outline-none" style={{ fontSize: 16, width: 68 }} />
+            className="border-0 rounded-lg px-2 py-1.5 outline-none" style={{ fontSize: 16, width: 68, background: C.card, color: C.ink }} />
           <span className="text-[11px]" style={{ color: C.soft }}>cm</span>
         </div>
         <div className="flex items-center gap-1.5">
           <input type="number" inputMode="numeric" placeholder="年齢" value={profile.age}
             onChange={(e) => onProfileChange({ age: e.target.value })}
-            className="border-0 bg-white rounded-lg px-2 py-1.5 outline-none" style={{ fontSize: 16, width: 60 }} />
+            className="border-0 rounded-lg px-2 py-1.5 outline-none" style={{ fontSize: 16, width: 60, background: C.card, color: C.ink }} />
           <span className="text-[11px]" style={{ color: C.soft }}>歳</span>
         </div>
-        <div className="flex items-center gap-1 rounded-lg bg-white p-0.5">
+        <div className="flex items-center gap-1 rounded-lg p-0.5" style={{ background: C.card }}>
           {[["male", "男性"], ["female", "女性"]].map(([v, label]) => (
             <button key={v} type="button" onClick={() => onProfileChange({ gender: v })}
               className="text-[11px] font-medium px-2 py-1 rounded-md"
@@ -1053,15 +1085,15 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
       </div>
 
       {profileHeight != null && (
-        <div className="mb-9 p-4 rounded-2xl grid gap-3" style={{ background: CAT.weight.soft, gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))" }}>
+        <div className="mb-9 p-4 rounded-2xl grid gap-3" style={{ background: CAT.weight.soft, boxShadow: C.shadow, gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))" }}>
           <div>
             <p className="text-[11px] font-medium" style={{ color: CAT.weight.main }}>現在のBMI</p>
-            <p className="text-lg font-bold mt-0.5" style={{ color: C.ink }}>{bmi != null ? bmi.toFixed(1) : "—"}</p>
+            <p className="text-xl font-extrabold mt-0.5" style={{ color: C.ink, fontVariantNumeric: "tabular-nums" }}>{bmi != null ? bmi.toFixed(1) : "—"}</p>
             {bmi != null && <p className="text-[10px] font-medium mt-0.5" style={{ color: CAT.weight.main }}>{bmiLabel(bmi)}</p>}
           </div>
           <div>
             <p className="text-[11px] font-medium" style={{ color: CAT.weight.main }}>標準体重</p>
-            <p className="text-lg font-bold mt-0.5" style={{ color: C.ink }}>{standardWeight.toFixed(1)}<span className="text-[10px] font-normal" style={{ color: C.soft }}> kg</span></p>
+            <p className="text-xl font-extrabold mt-0.5" style={{ color: C.ink, fontVariantNumeric: "tabular-nums" }}>{standardWeight.toFixed(1)}<span className="text-[10px] font-normal" style={{ color: C.soft }}> kg</span></p>
           </div>
           <div>
             <p className="text-[11px] font-medium" style={{ color: CAT.weight.main }}>目標体重</p>
@@ -1071,15 +1103,15 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
       )}
 
       {(bmrStandard != null || bmrLeanMass != null) && (
-        <div className="mb-9 p-4 rounded-2xl grid gap-3" style={{ background: CAT.weight.soft, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+        <div className="mb-9 p-4 rounded-2xl grid gap-3" style={{ background: CAT.weight.soft, boxShadow: C.shadow, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
           <div>
             <p className="text-[11px] font-medium" style={{ color: CAT.weight.main }}>基礎代謝(一般)</p>
-            <p className="text-lg font-bold mt-0.5" style={{ color: C.ink }}>{bmrStandard != null ? Math.round(bmrStandard) : "—"}<span className="text-[10px] font-normal" style={{ color: C.soft }}> kcal/日</span></p>
+            <p className="text-xl font-extrabold mt-0.5" style={{ color: C.ink, fontVariantNumeric: "tabular-nums" }}>{bmrStandard != null ? Math.round(bmrStandard) : "—"}<span className="text-[10px] font-normal" style={{ color: C.soft }}> kcal/日</span></p>
             <p className="text-[10px] mt-0.5" style={{ color: C.soft }}>年齢・身長・体重・性別から算出</p>
           </div>
           <div>
             <p className="text-[11px] font-medium" style={{ color: CAT.weight.main }}>基礎代謝(筋肉量を加味)</p>
-            <p className="text-lg font-bold mt-0.5" style={{ color: C.ink }}>{bmrLeanMass != null ? Math.round(bmrLeanMass) : "—"}<span className="text-[10px] font-normal" style={{ color: C.soft }}> kcal/日</span></p>
+            <p className="text-xl font-extrabold mt-0.5" style={{ color: C.ink, fontVariantNumeric: "tabular-nums" }}>{bmrLeanMass != null ? Math.round(bmrLeanMass) : "—"}<span className="text-[10px] font-normal" style={{ color: C.soft }}> kcal/日</span></p>
             <p className="text-[10px] mt-0.5" style={{ color: C.soft }}>
               {leanMass != null ? `除脂肪体重(≒筋肉量) ${leanMass.toFixed(1)}kgから算出` : "筋肉量または体脂肪率の記録が必要です"}
             </p>
@@ -1088,14 +1120,14 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
       )}
 
       {weightChart.length > 1 && (
-        <div className="mb-9 p-4 rounded-2xl" style={{ background: CAT.weight.soft }}>
+        <div className="mb-9 p-4 rounded-2xl" style={{ background: CAT.weight.soft, boxShadow: C.shadow }}>
           <p className="text-xs font-medium mb-3" style={{ color: CAT.weight.main }}>体重の推移</p>
           <ResponsiveContainer width="100%" height={140}>
             <LineChart data={weightChart}>
-              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="2 2" vertical={false} />
               <XAxis dataKey="date" tick={chartAxis} axisLine={false} tickLine={false} />
               <YAxis tick={chartAxis} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={30} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", background: C.card, boxShadow: "0 4px 14px rgba(0,0,0,0.4)" }} labelStyle={{ color: C.soft }} itemStyle={{ color: C.ink }} />
               <Line type="monotone" dataKey="体重" stroke={CAT.weight.main} strokeWidth={2.5} dot={{ r: 3, fill: CAT.weight.main }} />
             </LineChart>
           </ResponsiveContainer>
@@ -1103,14 +1135,14 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
       )}
 
       {bodyFatChart.length > 1 && (
-        <div className="mb-9 p-4 rounded-2xl" style={{ background: CAT.weight.soft }}>
+        <div className="mb-9 p-4 rounded-2xl" style={{ background: CAT.weight.soft, boxShadow: C.shadow }}>
           <p className="text-xs font-medium mb-3" style={{ color: CAT.weight.main }}>体脂肪率の推移</p>
           <ResponsiveContainer width="100%" height={140}>
             <ScatterChart>
-              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="2 2" vertical={false} />
               <XAxis dataKey="date" type="category" allowDuplicatedCategory={false} tick={chartAxis} axisLine={false} tickLine={false} />
               <YAxis dataKey="体脂肪率" type="number" tick={chartAxis} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={30} unit="%" />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", background: C.card, boxShadow: "0 4px 14px rgba(0,0,0,0.4)" }} labelStyle={{ color: C.soft }} itemStyle={{ color: C.ink }} />
               <Scatter data={bodyFatChart} fill={CAT.weight.main} />
             </ScatterChart>
           </ResponsiveContainer>
@@ -1118,14 +1150,14 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
       )}
 
       {muscleMassChart.length > 1 && (
-        <div className="mb-9 p-4 rounded-2xl" style={{ background: CAT.weight.soft }}>
+        <div className="mb-9 p-4 rounded-2xl" style={{ background: CAT.weight.soft, boxShadow: C.shadow }}>
           <p className="text-xs font-medium mb-3" style={{ color: CAT.weight.main }}>筋肉量の推移</p>
           <ResponsiveContainer width="100%" height={140}>
             <ScatterChart>
-              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="2 2" vertical={false} />
               <XAxis dataKey="date" type="category" allowDuplicatedCategory={false} tick={chartAxis} axisLine={false} tickLine={false} />
               <YAxis dataKey="筋肉量" type="number" tick={chartAxis} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={30} unit="kg" />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", background: C.card, boxShadow: "0 4px 14px rgba(0,0,0,0.4)" }} labelStyle={{ color: C.soft }} itemStyle={{ color: C.ink }} />
               <Scatter data={muscleMassChart} fill={CAT.weight.main} />
             </ScatterChart>
           </ResponsiveContainer>
@@ -1406,14 +1438,14 @@ function StepsTab({ entries, onAdd, onAddMany, onRemove, onUpdate, weightKg }) {
       </div>
 
       {stepsChart.length > 1 && (
-        <div className="mb-9 p-4 rounded-2xl" style={{ background: CAT.steps.soft }}>
+        <div className="mb-9 p-4 rounded-2xl" style={{ background: CAT.steps.soft, boxShadow: C.shadow }}>
           <p className="text-xs font-medium mb-3" style={{ color: CAT.steps.main }}>歩数の推移</p>
           <ResponsiveContainer width="100%" height={140}>
             <BarChart data={stepsChart}>
-              <CartesianGrid stroke="#ffffff" strokeDasharray="2 2" vertical={false} />
+              <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="2 2" vertical={false} />
               <XAxis dataKey="date" tick={chartAxis} axisLine={false} tickLine={false} />
               <YAxis tick={chartAxis} axisLine={false} tickLine={false} width={34} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none" }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", background: C.card, boxShadow: "0 4px 14px rgba(0,0,0,0.4)" }} labelStyle={{ color: C.soft }} itemStyle={{ color: C.ink }} />
               <Bar dataKey="歩数" fill={CAT.steps.main} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -1450,22 +1482,22 @@ function EntryList({ items, onRemove, onEdit, editingId, render, renderEdit, col
     <div className="space-y-1.5">
       {items.map((item) => (
         item.id === editingId && renderEdit ? (
-          <div key={item.id} className="py-2.5 px-3 rounded-xl" style={{ background: C.faint }}>
+          <div key={item.id} className="py-3 px-3.5 rounded-2xl" style={{ background: C.faint, boxShadow: `0 0 0 1.5px ${color}` }}>
             {renderEdit(item)}
           </div>
         ) : (
-          <div key={item.id} className="py-2.5 px-3 rounded-xl"
-            style={{ background: item.id === editingId ? C.faint : C.line }}>
+          <div key={item.id} className="py-3 px-3.5 rounded-2xl"
+            style={{ background: C.card, boxShadow: C.shadow, borderLeft: `3px solid ${color}` }}>
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-baseline gap-1.5">
                 <span className="text-[12px] font-bold" style={{ color }}>{fmtDate(item.date)}</span>
                 {item.time && <span className="text-[10px] font-medium" style={{ color: C.soft }}>{item.time}</span>}
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <button onClick={() => onEdit(item)} aria-label="編集" className="p-[15px] hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
+                <button onClick={() => onEdit(item)} aria-label="編集" className="p-[15px] hover:opacity-100 transition-opacity" style={{ opacity: 0.4 }}>
                   <Pencil size={14} color={C.soft} />
                 </button>
-                <button onClick={() => onRemove(item.id)} aria-label="削除" className="p-[15px] hover:opacity-100 transition-opacity" style={{ opacity: 0.45 }}>
+                <button onClick={() => onRemove(item.id)} aria-label="削除" className="p-[15px] hover:opacity-100 transition-opacity" style={{ opacity: 0.4 }}>
                   <Trash2 size={14} color={C.soft} />
                 </button>
               </div>
@@ -1484,7 +1516,7 @@ function InlineEditActions({ onSave, onCancel, color }) {
       <button type="button" onClick={onSave} className="text-[12px] font-medium py-1.5 px-3 rounded-lg" style={{ background: color, color: "#fff" }}>
         保存
       </button>
-      <button type="button" onClick={onCancel} className="text-[12px] font-medium py-1.5 px-3 rounded-lg" style={{ background: "#fff", color }}>
+      <button type="button" onClick={onCancel} className="text-[12px] font-medium py-1.5 px-3 rounded-lg" style={{ background: C.card, color }}>
         キャンセル
       </button>
     </div>
