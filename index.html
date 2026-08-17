@@ -139,7 +139,8 @@ const TABS = [
 
 const STORAGE_KEY = "health-log";
 const uid = () => Math.random().toString(36).slice(2, 10);
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const localDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const todayStr = () => localDateStr(new Date());
 const fmtDate = (d) => {
   const dt = new Date(d + "T00:00:00");
   return `${dt.getMonth() + 1}/${dt.getDate()}`;
@@ -199,6 +200,66 @@ function calcBMRStandard(weightKg, heightCm, age, gender) {
 function calcBMRLeanMass(leanMassKg) {
   if (!leanMassKg) return null;
   return 370 + 21.6 * leanMassKg;
+}
+function computeBMR(latestWeight, profile) {
+  const height = Number(profile.height) || null;
+  const age = Number(profile.age) || null;
+  if (!latestWeight) return { standard: null, leanMass: null, leanMassBMR: null };
+  const leanMass = latestWeight.muscleMass ?? (latestWeight.bodyFat != null ? latestWeight.weight * (1 - latestWeight.bodyFat / 100) : null);
+  const standard = height && age ? calcBMRStandard(latestWeight.weight, height, age, profile.gender || "male") : null;
+  return { standard, leanMass, leanMassBMR: calcBMRLeanMass(leanMass) };
+}
+// 歩数からの推定消費カロリー(簡易目安): 体重が重いほど1歩あたりの消費が増える近似式
+function estimateStepsKcal(steps, weightKg) {
+  if (!steps) return 0;
+  return steps * (weightKg || 60) * 0.0005;
+}
+
+// 種目名からMETs(運動強度)を推定するための対応表(ざっくり目安)
+// secondsPerRep がある種目は、時間の代わりに回数からも推定できる(1回あたりの目安秒数)
+const MET_TABLE = [
+  { keywords: ["早歩き", "速歩き"], met: 4.3 },
+  { keywords: ["散歩", "ウォーキング", "歩く"], met: 3.5 },
+  { keywords: ["ジョギング"], met: 7.0 },
+  { keywords: ["ランニング", "走る", "マラソン"], met: 9.8 },
+  { keywords: ["スクワット"], met: 5.0, secondsPerRep: 3 },
+  { keywords: ["腕立て", "プッシュアップ"], met: 8.0, secondsPerRep: 2.5 },
+  { keywords: ["腹筋", "クランチ", "シットアップ"], met: 8.0, secondsPerRep: 2.5 },
+  { keywords: ["懸垂", "チンニング"], met: 8.0, secondsPerRep: 4 },
+  { keywords: ["ランジ"], met: 5.0, secondsPerRep: 3 },
+  { keywords: ["バーピー"], met: 8.0, secondsPerRep: 4 },
+  { keywords: ["プランク"], met: 4.0 },
+  { keywords: ["筋トレ", "筋力トレーニング", "ウェイト"], met: 5.0 },
+  { keywords: ["ヨガ"], met: 2.5 },
+  { keywords: ["ピラティス"], met: 3.0 },
+  { keywords: ["ストレッチ"], met: 2.3 },
+  { keywords: ["水泳", "スイミング", "泳ぐ"], met: 6.0 },
+  { keywords: ["自転車", "サイクリング"], met: 6.0 },
+  { keywords: ["縄跳び", "なわとび"], met: 10.0 },
+  { keywords: ["階段"], met: 8.0 },
+  { keywords: ["バスケ"], met: 6.5 },
+  { keywords: ["サッカー"], met: 7.0 },
+  { keywords: ["テニス"], met: 7.0 },
+  { keywords: ["ゴルフ"], met: 4.3 },
+  { keywords: ["卓球"], met: 4.0 },
+  { keywords: ["バドミントン"], met: 5.5 },
+  { keywords: ["登山", "ハイキング"], met: 6.0 },
+  { keywords: ["ダンス"], met: 5.0 },
+  { keywords: ["エアロビクス", "HIIT"], met: 7.3 },
+];
+// 種目名・時間(分)・回数・体重からおおよその消費カロリーを推定(METs×体重kg×時間h×1.05)
+// 時間が未入力で回数がある場合は、種目ごとの目安秒数(secondsPerRep)から時間を逆算する
+function estimateExerciseKcal(typeText, durationMin, reps, weightKg) {
+  const t = (typeText || "").trim();
+  if (!t) return null;
+  const hit = MET_TABLE.find((row) => row.keywords.some((k) => t.includes(k)));
+  if (!hit) return null;
+  let minutes = Number(durationMin) || 0;
+  if (!minutes && reps && hit.secondsPerRep) {
+    minutes = (Number(reps) * hit.secondsPerRep) / 60;
+  }
+  if (!minutes) return null;
+  return Math.round(hit.met * (weightKg || 60) * (minutes / 60) * 1.05);
 }
 
 async function ocrText(file) {
@@ -530,8 +591,8 @@ function HealthTracker() {
           {activeTab === "overview" && <Overview data={data} onAddWeight={addWeight} onAddMeal={addMeal} onAddExercise={addExercise} onAddSteps={addSteps} />}
           {activeTab === "weight" && <WeightTab entries={data.weights} onAdd={addWeight} onAddMany={addManyWeights} onRemove={(id) => removeItem("weights", id)} onUpdate={(id, patch) => updateItem("weights", id, patch)} profile={data.profile} onProfileChange={setProfile} />}
           {activeTab === "meals" && <MealsTab entries={data.meals} onAdd={addMeal} onRemove={(id) => removeItem("meals", id)} onUpdate={(id, patch) => updateItem("meals", id, patch)} />}
-          {activeTab === "exercise" && <ExerciseTab entries={data.exercises} onAdd={addExercise} onRemove={(id) => removeItem("exercises", id)} onUpdate={(id, patch) => updateItem("exercises", id, patch)} />}
-          {activeTab === "steps" && <StepsTab entries={data.steps} onAdd={addSteps} onAddMany={addManySteps} onRemove={(id) => removeItem("steps", id)} onUpdate={(id, patch) => updateItem("steps", id, patch)} />}
+          {activeTab === "exercise" && <ExerciseTab entries={data.exercises} onAdd={addExercise} onRemove={(id) => removeItem("exercises", id)} onUpdate={(id, patch) => updateItem("exercises", id, patch)} weightKg={data.weights.length ? data.weights[data.weights.length - 1].weight : null} />}
+          {activeTab === "steps" && <StepsTab entries={data.steps} onAdd={addSteps} onAddMany={addManySteps} onRemove={(id) => removeItem("steps", id)} onUpdate={(id, patch) => updateItem("steps", id, patch)} weightKg={data.weights.length ? data.weights[data.weights.length - 1].weight : null} />}
           {saveError && <p className="text-xs mt-4" style={{ color: C.soft }}>保存に失敗しました。もう一度お試しください。</p>}
         </div>
       </div>
@@ -580,13 +641,19 @@ function Overview({ data, onAddWeight, onAddMeal, onAddExercise, onAddSteps }) {
   const todaysStepsEntries = data.steps.filter((s) => s.date === today);
   const todaysSteps = todaysStepsEntries[todaysStepsEntries.length - 1];
 
+  const { standard: bmrStandard, leanMassBMR } = computeBMR(latestWeight, data.profile);
+  const bmr = leanMassBMR ?? bmrStandard;
+  const stepsKcal = estimateStepsKcal(todaysSteps ? todaysSteps.steps : 0, latestWeight ? latestWeight.weight : null);
+  const totalBurn = bmr != null ? bmr + stepsKcal + kcalOut : null;
+  const balance = totalBurn != null ? kcalIn - totalBurn : null;
+
   const weightChart = avgByDate(data.weights, "weight").slice(-14).map((d) => ({ date: fmtDate(d.date), 体重: Number(d.value.toFixed(1)) }));
 
   const dayMap = {};
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = localDateStr(d);
     dayMap[key] = { date: fmtDate(key), 摂取: 0, 消費: 0 };
   }
   data.meals.forEach((m) => { if (dayMap[m.date]) dayMap[m.date].摂取 += Number(m.calories) || 0; });
@@ -597,7 +664,7 @@ function Overview({ data, onAddWeight, onAddMeal, onAddExercise, onAddSteps }) {
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = localDateStr(d);
     stepsMap[key] = { date: fmtDate(key), 歩数: 0 };
   }
   data.steps.forEach((s) => { if (stepsMap[s.date]) stepsMap[s.date].歩数 = Number(s.steps) || 0; });
@@ -610,16 +677,36 @@ function Overview({ data, onAddWeight, onAddMeal, onAddExercise, onAddSteps }) {
       <div className="grid gap-3 mb-9" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))" }}>
         <Stat label="体重" value={latestWeight ? latestWeight.weight : "—"} unit="kg" extra={weightDelta ? `${weightDelta > 0 ? "+" : ""}${weightDelta}` : null} color={CAT.weight.main} bg={CAT.weight.soft} />
         <Stat label="歩数" value={todaysSteps ? todaysSteps.steps.toLocaleString() : "—"} unit="歩" color={CAT.steps.main} bg={CAT.steps.soft} />
-        <Stat label="摂取" value={kcalIn || "—"} unit="kcal" color={CAT.meals.main} bg={CAT.meals.soft} />
-        <Stat label="消費" value={kcalOut || "—"} unit="kcal" color={CAT.exercise.main} bg={CAT.exercise.soft} />
+        <Stat label="摂取" value={todaysMeals.length ? kcalIn : "—"} unit="kcal" color={CAT.meals.main} bg={CAT.meals.soft} />
+        <Stat label="消費" value={todaysExercise.length ? kcalOut : "—"} unit="kcal" color={CAT.exercise.main} bg={CAT.exercise.soft} />
         {bmi != null && <Stat label="BMI" value={bmi.toFixed(1)} unit="" extra={bmiLabel(bmi)} color={CAT.weight.main} bg={CAT.weight.soft} />}
+        {bmr != null && <Stat label="基礎代謝" value={Math.round(bmr)} unit="kcal" color={CAT.weight.main} bg={CAT.weight.soft} />}
       </div>
+
+      {totalBurn != null && (
+        <div className="mb-9 p-4 rounded-2xl" style={{ background: balance > 0 ? CAT.exercise.soft : CAT.weight.soft }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold" style={{ color: balance > 0 ? CAT.exercise.main : CAT.weight.main }}>
+              今日の収支{balance > 0 ? "・オーバー気味" : "・順調"}
+            </p>
+            <p className="text-sm font-bold" style={{ color: balance > 0 ? CAT.exercise.main : CAT.weight.main }}>
+              {balance > 0 ? "+" : ""}{Math.round(balance)} kcal
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]" style={{ color: C.soft }}>
+            <span>摂取 {kcalIn}kcal</span>
+            <span>基礎代謝 {Math.round(bmr)}kcal</span>
+            <span>歩数消費(目安) {Math.round(stepsKcal)}kcal</span>
+            <span>運動消費 {kcalOut}kcal</span>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3 mb-9">
         <QuickAddWeight onAdd={onAddWeight} chartData={weightChart} />
         <QuickAddSteps onAdd={onAddSteps} chartData={stepsChart} />
         <QuickAddMeal onAdd={onAddMeal} chartData={calChart} />
-        <QuickAddExercise onAdd={onAddExercise} chartData={calChart} />
+        <QuickAddExercise onAdd={onAddExercise} chartData={calChart} weightKg={latestWeight ? latestWeight.weight : null} />
       </div>
 
       {data.weights.length === 0 && data.meals.length === 0 && data.exercises.length === 0 && (
@@ -730,7 +817,7 @@ function QuickAddMeal({ onAdd, chartData }) {
   const [date, setDate] = useState(todayStr());
   const submit = () => {
     if (!name) return;
-    onAdd({ id: uid(), date, time: nowTime(), name, calories: calories ? Number(calories) : 0 });
+    onAdd({ id: uid(), date, time: nowTime(), name, calories: calories ? Number(calories) : null });
     setName(""); setCalories("");
   };
   return (
@@ -764,20 +851,28 @@ function QuickAddMeal({ onAdd, chartData }) {
   );
 }
 
-function QuickAddExercise({ onAdd, chartData }) {
+function QuickAddExercise({ onAdd, chartData, weightKg }) {
   const [type, setType] = useState("");
   const [duration, setDuration] = useState("");
   const [calories, setCalories] = useState("");
+  const [caloriesAuto, setCaloriesAuto] = useState(true);
   const [date, setDate] = useState(todayStr());
+
+  useEffect(() => {
+    if (!caloriesAuto) return;
+    const estimate = estimateExerciseKcal(type, duration, null, weightKg);
+    if (estimate != null) setCalories(String(estimate));
+  }, [type, duration, caloriesAuto]);
+
   const submit = () => {
     if (!type) return;
-    onAdd({ id: uid(), date, time: nowTime(), type, duration: duration ? Number(duration) : null, calories: calories ? Number(calories) : 0 });
-    setType(""); setDuration(""); setCalories("");
+    onAdd({ id: uid(), date, time: nowTime(), type, duration: duration ? Number(duration) : null, calories: calories ? Number(calories) : null });
+    setType(""); setDuration(""); setCalories(""); setCaloriesAuto(true);
   };
   const handleExtract = (result) => {
     if (result.type) setType(result.type);
     if (result.duration != null) setDuration(String(result.duration));
-    if (result.calories != null) setCalories(String(result.calories));
+    if (result.calories != null) { setCalories(String(result.calories)); setCaloriesAuto(false); }
     if (result.date) setDate(result.date);
   };
   return (
@@ -789,12 +884,14 @@ function QuickAddExercise({ onAdd, chartData }) {
           className={quickInputCls} style={{ ...quickInputStyle, gridColumn: "1 / -1" }} />
         <input type="number" inputMode="numeric" placeholder="分" value={duration} onChange={(e) => setDuration(e.target.value)}
           className={quickInputCls} style={quickInputStyle} />
-        <input type="number" inputMode="numeric" placeholder="kcal" value={calories} onChange={(e) => setCalories(e.target.value)}
+        <input type="number" inputMode="numeric" placeholder="kcal" value={calories}
+          onChange={(e) => { setCalories(e.target.value); setCaloriesAuto(false); }}
           className={quickInputCls} style={quickInputStyle} />
         <button onClick={submit} className="p-2.5 rounded-lg flex items-center justify-center" style={{ background: CAT.exercise.main, gridColumn: "1 / -1" }}>
           <Plus size={16} color="#fff" />
         </button>
       </div>
+      {caloriesAuto && calories && <p className="text-[10px] -mt-1 mb-1" style={{ color: C.soft }}>種目・時間からの自動推定です</p>}
       <ScreenshotButton color={CAT.exercise.main} extract={extractExercise} onExtract={handleExtract} />
       {chartData.some((d) => d.摂取 > 0 || d.消費 > 0) && (
         <div className="mt-3 -mx-1">
@@ -811,6 +908,14 @@ function QuickAddExercise({ onAdd, chartData }) {
         </div>
       )}
     </QuickAddCard>
+  );
+}
+
+function Num({ children, width }) {
+  return (
+    <span style={{ display: "inline-block", minWidth: width, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+      {children}
+    </span>
   );
 }
 
@@ -847,13 +952,7 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
   const targetWeightMin = profileHeight ? bmiRange[0] * (profileHeight / 100) ** 2 : null;
   const targetWeightMax = profileHeight ? bmiRange[1] * (profileHeight / 100) ** 2 : null;
 
-  const leanMass = latestWeight
-    ? latestWeight.muscleMass ?? (latestWeight.bodyFat != null ? latestWeight.weight * (1 - latestWeight.bodyFat / 100) : null)
-    : null;
-  const bmrStandard = profileHeight && profileAge && latestWeight
-    ? calcBMRStandard(latestWeight.weight, profileHeight, profileAge, profile.gender || "male")
-    : null;
-  const bmrLeanMass = calcBMRLeanMass(leanMass);
+  const { standard: bmrStandard, leanMass, leanMassBMR: bmrLeanMass } = computeBMR(latestWeight, profile);
 
   const startEdit = (item) => {
     setEditingId(item.id);
@@ -1027,7 +1126,13 @@ function WeightTab({ entries, onAdd, onAddMany, onRemove, onUpdate, profile, onP
       )}
 
       <EntryList items={[...entries].reverse()} onRemove={onRemove} onEdit={startEdit} editingId={editingId} color={CAT.weight.main}
-        render={(e) => `${e.weight}kg${e.bodyFat ? ` ・ 体脂肪 ${e.bodyFat}%` : ""}${e.muscleMass ? ` ・ 筋肉量 ${e.muscleMass}kg` : ""}`}
+        render={(e) => (
+          <>
+            <Num width={38}>{e.weight}</Num>kg
+            {e.bodyFat != null ? <> ・ 体脂肪 <Num width={30}>{e.bodyFat}</Num>%</> : null}
+            {e.muscleMass != null ? <> ・ 筋肉量 <Num width={30}>{e.muscleMass}</Num>kg</> : null}
+          </>
+        )}
         renderEdit={() => (
           <div>
             <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))" }}>
@@ -1062,18 +1167,18 @@ function MealsTab({ entries, onAdd, onRemove, onUpdate }) {
     setEditingId(item.id);
     setEditDate(item.date);
     setEditName(item.name);
-    setEditCalories(item.calories ? String(item.calories) : "");
+    setEditCalories(item.calories != null ? String(item.calories) : "");
     setEditTime(item.time || "");
   };
   const cancelEdit = () => setEditingId(null);
   const saveEdit = () => {
     if (!editName) return;
-    onUpdate(editingId, { date: editDate, time: editTime || null, name: editName, calories: editCalories ? Number(editCalories) : 0 });
+    onUpdate(editingId, { date: editDate, time: editTime || null, name: editName, calories: editCalories ? Number(editCalories) : null });
     cancelEdit();
   };
   const submit = () => {
     if (!name) return;
-    onAdd({ id: uid(), date, time: time || null, name, calories: calories ? Number(calories) : 0 });
+    onAdd({ id: uid(), date, time: time || null, name, calories: calories ? Number(calories) : null });
     setName(""); setCalories(""); setTime(nowTime());
   };
 
@@ -1102,7 +1207,12 @@ function MealsTab({ entries, onAdd, onRemove, onUpdate }) {
         </button>
       </div>
       <EntryList items={[...entries].reverse()} onRemove={onRemove} onEdit={startEdit} editingId={editingId} color={CAT.meals.main}
-        render={(e) => `${e.name}${e.calories ? ` ・ ${e.calories}kcal` : ""}`}
+        render={(e) => (
+          <>
+            {e.name}
+            {e.calories != null ? <> ・ <Num width={40}>{e.calories}</Num>kcal</> : null}
+          </>
+        )}
         renderEdit={() => (
           <div>
             <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))" }}>
@@ -1122,39 +1232,49 @@ function MealsTab({ entries, onAdd, onRemove, onUpdate }) {
   );
 }
 
-function ExerciseTab({ entries, onAdd, onRemove, onUpdate }) {
+function ExerciseTab({ entries, onAdd, onRemove, onUpdate, weightKg }) {
   const [type, setType] = useState("");
   const [duration, setDuration] = useState("");
+  const [reps, setReps] = useState("");
   const [calories, setCalories] = useState("");
+  const [caloriesAuto, setCaloriesAuto] = useState(true);
   const [date, setDate] = useState(todayStr());
   const [editingId, setEditingId] = useState(null);
   const [editDate, setEditDate] = useState(todayStr());
   const [editType, setEditType] = useState("");
   const [editDuration, setEditDuration] = useState("");
+  const [editReps, setEditReps] = useState("");
   const [editCalories, setEditCalories] = useState("");
+
+  useEffect(() => {
+    if (!caloriesAuto) return;
+    const estimate = estimateExerciseKcal(type, duration, reps, weightKg);
+    if (estimate != null) setCalories(String(estimate));
+  }, [type, duration, reps, caloriesAuto]);
 
   const startEdit = (item) => {
     setEditingId(item.id);
     setEditDate(item.date);
     setEditType(item.type);
     setEditDuration(item.duration !== null && item.duration !== undefined ? String(item.duration) : "");
-    setEditCalories(item.calories ? String(item.calories) : "");
+    setEditReps(item.reps !== null && item.reps !== undefined ? String(item.reps) : "");
+    setEditCalories(item.calories != null ? String(item.calories) : "");
   };
   const cancelEdit = () => setEditingId(null);
   const saveEdit = () => {
     if (!editType) return;
-    onUpdate(editingId, { date: editDate, type: editType, duration: editDuration ? Number(editDuration) : null, calories: editCalories ? Number(editCalories) : 0 });
+    onUpdate(editingId, { date: editDate, type: editType, duration: editDuration ? Number(editDuration) : null, reps: editReps ? Number(editReps) : null, calories: editCalories ? Number(editCalories) : null });
     cancelEdit();
   };
   const submit = () => {
     if (!type) return;
-    onAdd({ id: uid(), time: nowTime(), date, type, duration: duration ? Number(duration) : null, calories: calories ? Number(calories) : 0 });
-    setType(""); setDuration(""); setCalories("");
+    onAdd({ id: uid(), time: nowTime(), date, type, duration: duration ? Number(duration) : null, reps: reps ? Number(reps) : null, calories: calories ? Number(calories) : null });
+    setType(""); setDuration(""); setReps(""); setCalories(""); setCaloriesAuto(true);
   };
   const handleExtract = (result) => {
     if (result.type) setType(result.type);
     if (result.duration != null) setDuration(String(result.duration));
-    if (result.calories != null) setCalories(String(result.calories));
+    if (result.calories != null) { setCalories(String(result.calories)); setCaloriesAuto(false); }
     if (result.date) setDate(result.date);
   };
 
@@ -1174,9 +1294,15 @@ function ExerciseTab({ entries, onAdd, onRemove, onUpdate }) {
           <input type="number" inputMode="numeric" placeholder="0" value={duration} onChange={(e) => setDuration(e.target.value)}
             className={inputCls} style={inputStyle} />
         </Field>
-        <Field label="消費 (kcal)">
-          <input type="number" inputMode="numeric" placeholder="0" value={calories} onChange={(e) => setCalories(e.target.value)}
+        <Field label="回数">
+          <input type="number" inputMode="numeric" placeholder="0" value={reps} onChange={(e) => setReps(e.target.value)}
             className={inputCls} style={inputStyle} />
+        </Field>
+        <Field label="消費 (kcal)">
+          <input type="number" inputMode="numeric" placeholder="0" value={calories}
+            onChange={(e) => { setCalories(e.target.value); setCaloriesAuto(false); }}
+            className={inputCls} style={inputStyle} />
+          {caloriesAuto && calories && <p className="text-[10px] mt-1" style={{ color: C.soft }}>種目・時間(または回数)からの自動推定です</p>}
         </Field>
         <button onClick={submit} className="text-sm font-medium flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl" style={{ color: "#fff", background: CAT.exercise.main, gridColumn: "1 / -1" }}>
           <Plus size={15} /> 記録
@@ -1186,7 +1312,14 @@ function ExerciseTab({ entries, onAdd, onRemove, onUpdate }) {
         <ScreenshotButton color={CAT.exercise.main} extract={extractExercise} onExtract={handleExtract} />
       </div>
       <EntryList items={[...entries].reverse()} onRemove={onRemove} onEdit={startEdit} editingId={editingId} color={CAT.exercise.main}
-        render={(e) => `${e.type}${e.duration ? ` ・ ${e.duration}分` : ""}${e.calories ? ` ・ ${e.calories}kcal` : ""}`}
+        render={(e) => (
+          <>
+            {e.type}
+            {e.duration != null ? <> ・ <Num width={26}>{e.duration}</Num>分</> : null}
+            {e.reps != null ? <> ・ <Num width={22}>{e.reps}</Num>回</> : null}
+            {e.calories != null ? <> ・ <Num width={40}>{e.calories}</Num>kcal</> : null}
+          </>
+        )}
         renderEdit={() => (
           <div>
             <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))" }}>
@@ -1195,6 +1328,8 @@ function ExerciseTab({ entries, onAdd, onRemove, onUpdate }) {
               <input type="text" placeholder="種目" value={editType} onChange={(e) => setEditType(e.target.value)}
                 className={quickInputCls} style={{ ...quickInputStyle, gridColumn: "1 / -1" }} />
               <input type="number" inputMode="numeric" placeholder="分" value={editDuration} onChange={(e) => setEditDuration(e.target.value)}
+                className={quickInputCls} style={quickInputStyle} />
+              <input type="number" inputMode="numeric" placeholder="回数" value={editReps} onChange={(e) => setEditReps(e.target.value)}
                 className={quickInputCls} style={quickInputStyle} />
               <input type="number" inputMode="numeric" placeholder="kcal" value={editCalories} onChange={(e) => setEditCalories(e.target.value)}
                 className={quickInputCls} style={quickInputStyle} />
@@ -1206,7 +1341,7 @@ function ExerciseTab({ entries, onAdd, onRemove, onUpdate }) {
   );
 }
 
-function StepsTab({ entries, onAdd, onAddMany, onRemove, onUpdate }) {
+function StepsTab({ entries, onAdd, onAddMany, onRemove, onUpdate, weightKg }) {
   const [steps, setSteps] = useState("");
   const [date, setDate] = useState(todayStr());
   const [editingId, setEditingId] = useState(null);
@@ -1250,6 +1385,7 @@ function StepsTab({ entries, onAdd, onAddMany, onRemove, onUpdate }) {
         <Field label="歩数">
           <input type="number" inputMode="numeric" placeholder="0" value={steps} onChange={(e) => setSteps(e.target.value)}
             className={inputCls} style={inputStyle} />
+          {steps && <p className="text-[10px] mt-1" style={{ color: C.soft }}>推定消費 約{Math.round(estimateStepsKcal(Number(steps), weightKg))}kcal</p>}
         </Field>
         <button onClick={submit} className="text-sm font-medium flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl" style={{ color: "#fff", background: CAT.steps.main, gridColumn: "1 / -1" }}>
           <Plus size={15} /> 記録
@@ -1278,7 +1414,11 @@ function StepsTab({ entries, onAdd, onAddMany, onRemove, onUpdate }) {
       )}
 
       <EntryList items={[...entries].reverse()} onRemove={onRemove} onEdit={startEdit} editingId={editingId} color={CAT.steps.main}
-        render={(e) => `${e.steps.toLocaleString()}歩`}
+        render={(e) => (
+          <>
+            <Num width={56}>{e.steps.toLocaleString()}</Num>歩 ・ 約<Num width={40}>{Math.round(estimateStepsKcal(e.steps, weightKg))}</Num>kcal
+          </>
+        )}
         renderEdit={() => (
           <div>
             <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))" }}>
@@ -1287,6 +1427,7 @@ function StepsTab({ entries, onAdd, onAddMany, onRemove, onUpdate }) {
               <input type="number" inputMode="numeric" placeholder="歩数" value={editSteps} onChange={(e) => setEditSteps(e.target.value)}
                 className={quickInputCls} style={quickInputStyle} />
             </div>
+            {editSteps && <p className="text-[10px] mt-1" style={{ color: C.soft }}>推定消費 約{Math.round(estimateStepsKcal(Number(editSteps), weightKg))}kcal</p>}
             <InlineEditActions onSave={saveEdit} onCancel={cancelEdit} color={CAT.steps.main} />
           </div>
         )} />
